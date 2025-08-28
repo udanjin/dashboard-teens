@@ -12,12 +12,12 @@ const sequelize = new Sequelize(
     port: Number(process.env.SUPABASE_PORT),
     dialect: 'postgres',
     dialectOptions: {
-      ssl: {
+      ssl: process.env.NODE_ENV === 'production' ?{
         require: true,
         rejectUnauthorized: false
-      }
+      } :false
     },
-    logging: false
+    logging:  process.env.NODE_ENV === 'development' ? console.log : false,
   }
 );
 
