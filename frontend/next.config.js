@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  // Tambahkan konfigurasi lain jika ada di sini
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/:path*`,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

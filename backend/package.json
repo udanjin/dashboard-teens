@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/index.ts",
-    "dev": "ts-node-dev --respawn src/index.ts",
     "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "test": "ts-node src/test.ts"
   },
   "keywords": [],
