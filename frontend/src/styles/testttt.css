@@ -1,0 +1,22 @@
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .gradient-text {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    transition: background-position 0.5s ease;
+  }
+  
+  .gradient-text:hover {
+    background-position: 100% 0;
+  }
+  
+  .animate-gradient {
+    animation: gradient-shift 6s ease infinite;
+  }

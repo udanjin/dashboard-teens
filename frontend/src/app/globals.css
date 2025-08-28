@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+.gradient-text {
+  background:linear-gradient(
+  to right,
+  #667eea,
+  #805ad5,
+  #D81B60,
+  #805ad5,
+  #667eea,
+  #805ad5,
+  #D81B60);
+  background-size: 200% 200%;
+  background-clip: text;
+}
+
+/* @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+} */
+ /* Ensure full width for main content */
+.ant-layout-content {
+  width: 100%;
+  max-width: none;
+}
+
+/* Calendar specific adjustments */
+.ant-picker-calendar {
+  width: 100% !important;
+}
+
+.ant-picker-calendar .ant-picker-panel {
+  border: none !important;
+}
+
+/* Remove any max-width constraints */
+.main-content {
+  max-width: none !important;
+}
+* {
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+}
+
+/* Specifically override Ant Design components */
+.ant-typography,
+.ant-typography * {
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-btn,
+.ant-form-item-label > label,
+.ant-card,
+.ant-message,
+.ant-notification,
+.ant-select,
+.ant-picker {
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+}
+
+/* Ensure consistent font weight and styling */
+body {
+  font-feature-settings: 'cv03', 'cv04', 'cv11';
+}
