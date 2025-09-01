@@ -53,7 +53,7 @@ export class Server extends OvernightServer {
       console.log("✅ Database connection and sync successful.");
     } catch (err) {
       console.error("❌ Failed to connect to DB:", err);
-      process.exit(1);
+      // process.exit(1);
     }
   }
   
