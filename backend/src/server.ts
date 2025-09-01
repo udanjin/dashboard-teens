@@ -1,31 +1,33 @@
 import { Server as OvernightServer } from "@overnightjs/core";
-import express, { Application,Request,Response } from "express";
+import express, { Application, Request, Response } from "express";
 import { AuthController } from "./controllers/AuthController";
 import sequelize from "./config/db";
 import cors from "cors";
 import { SportReportController } from "./controllers/SportReportController";
 import { FclController } from "./controllers/FclController";
 import { AttendanceController } from "./controllers/AttendanceController";
-import './models';
+import "./models";
 
 export class Server extends OvernightServer {
   constructor() {
     super();
-    this.setupMiddleware();
     this.setupControllers();
+    this.setupMiddleware();
     this.connectDb();
   }
 
   private setupMiddleware(): void {
     // Menggunakan environment variable untuk CORS
     const corsOptions = {
-      origin: process.env.CORS_ORIGIN?.split(',') || "http://localhost:3000",
+      origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000",
     };
     this.app.use(cors(corsOptions));
     this.app.use(express.json());
-   
-    this.app.get('/api/health', (req: Request, res: Response) => {
-      res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+
+    this.app.get("/api/health", (req: Request, res: Response) => {
+      res
+        .status(200)
+        .json({ status: "OK", timestamp: new Date().toISOString() });
     });
   }
 
@@ -38,7 +40,7 @@ export class Server extends OvernightServer {
     ]);
     console.log(`✅ Controllers added successfully`);
   }
-  
+
   // Memisahkan koneksi DB agar bisa dipanggil di constructor
   private async connectDb(): Promise<void> {
     try {
@@ -47,10 +49,9 @@ export class Server extends OvernightServer {
       console.log("✅ Database connection and sync successful.");
     } catch (err) {
       console.error("❌ Failed to connect to DB:", err);
-    
     }
   }
-  
+
   // Getter untuk Vercel
   public getApp(): Application {
     return this.app;
