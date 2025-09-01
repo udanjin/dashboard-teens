@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, Statistic, Spin, Typography, message } from "antd";
 import { WalletOutlined } from "@ant-design/icons";
 // Corrected: Changed path alias to a relative path to resolve the module.
-import axiosInstance from "../../lib/axiosInstance";
+import axiosInstance from "@/lib/axiosInstance";
 
 export default function SportsHome() {
   const [cashBalance, setCashBalance] = useState<number | null>(null);

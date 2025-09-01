@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Table, Button, Modal, Typography, DatePicker, message, Spin, Select, Space, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import axiosInstance from "../../lib/axiosInstance";
+import axiosInstance from "@/lib/axiosInstance";
 import dayjs from "dayjs";
 import Chart from 'chart.js/auto';
 

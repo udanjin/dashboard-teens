@@ -27,7 +27,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import axiosInstance from "../../lib/axiosInstance";
+import axiosInstance from "@/lib/axiosInstance";
 
 const { Text } = Typography;
 
