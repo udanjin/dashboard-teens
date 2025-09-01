@@ -1,5 +1,5 @@
 import { Server as OvernightServer } from "@overnightjs/core";
-import express, { Application } from "express";
+import express, { Application,Request,Response } from "express";
 import { AuthController } from "./controllers/AuthController";
 import sequelize from "./config/db";
 import cors from "cors";
@@ -23,16 +23,10 @@ export class Server extends OvernightServer {
     };
     this.app.use(cors(corsOptions));
     this.app.use(express.json());
-    this.app.get('/', (req, res) => {
-    res.json({ 
-      status: 'Server running',
-      timestamp: new Date().toISOString()
+   
+    this.app.get('/api/health', (req: Request, res: Response) => {
+      res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
     });
-  });
-
-  this.app.get('/health', (req, res) => {
-    res.json({ status: 'OK' });
-  });
   }
 
   private setupControllers(): void {
