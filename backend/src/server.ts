@@ -23,6 +23,16 @@ export class Server extends OvernightServer {
     };
     this.app.use(cors(corsOptions));
     this.app.use(express.json());
+    this.app.get('/', (req, res) => {
+    res.json({ 
+      status: 'Server running',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  this.app.get('/health', (req, res) => {
+    res.json({ status: 'OK' });
+  });
   }
 
   private setupControllers(): void {
@@ -32,6 +42,7 @@ export class Server extends OvernightServer {
       new FclController(),
       new AttendanceController(),
     ]);
+    console.log(`✅ Controllers added successfully`);
   }
   
   // Memisahkan koneksi DB agar bisa dipanggil di constructor
