@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 // FIXED: Use the login method from AuthContext instead of @/lib/auth
-import { useAuth } from "@/context/AuthContext"; // Adjust path as needed
+import { useAuth } from "../../context/AuthContext"; // Adjust path as needed
 
 export default function LoginPage() {
   const router = useRouter();

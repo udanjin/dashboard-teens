@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Card, DatePicker, message, Spin } from "antd";
 // Corrected: Changed path alias to a relative path to resolve the module.
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "../../lib/axiosInstance";
 import dayjs from "dayjs";
 import Chart from 'chart.js/auto';
 

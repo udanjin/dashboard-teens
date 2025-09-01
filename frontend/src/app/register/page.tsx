@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button, Form, Input, message, Card, Typography } from "antd";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "../../lib/axiosInstance";
 import { useRouter } from "next/navigation";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 

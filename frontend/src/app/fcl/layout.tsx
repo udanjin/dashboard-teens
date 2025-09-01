@@ -1,9 +1,9 @@
 'use client'
 
 import { Layout } from 'antd'
-import DashboardSidebar from '@/components/Layout/DashboardSidebar'
-import DashboardHeader from '@/components/Layout/DashboardHeader'
-import { useAuth } from '@/context/AuthContext'
+import DashboardSidebar from '../../components/Layout/DashboardSidebar'
+import DashboardHeader from '../../components/Layout/DashboardHeader'
+import { useAuth } from '../../context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 

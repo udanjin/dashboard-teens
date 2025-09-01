@@ -13,8 +13,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useAuth } from "@/context/AuthContext";
-import logo from "@/assets/logo.png";
+import { useAuth } from "../../context/AuthContext";
+import logo from "../../assets/logo.png";
 
 interface SidebarProps {
   isOpen: boolean;

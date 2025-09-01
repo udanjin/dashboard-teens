@@ -21,7 +21,7 @@ import {
 } from "@ant-design/icons";
 import { act, useEffect, useState } from "react";
 import axios from "axios";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "../../lib/axiosInstance";
 
 interface UserInfo {
   name: string;

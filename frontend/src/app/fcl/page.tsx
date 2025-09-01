@@ -27,9 +27,9 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 // Corrected: Reverted to the path alias for consistency with your project structure.
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "../../lib/axiosInstance";
 // Corrected: Reverted to the path alias for consistency with your project structure.
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import dayjs from "dayjs";
 import "dayjs/locale/id";
 dayjs.locale("id");

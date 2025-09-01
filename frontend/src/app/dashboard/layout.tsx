@@ -2,9 +2,9 @@
 
 import { Layout } from 'antd'
 // Corrected: Reverted to path aliases for consistency with your project structure.
-import DashboardSidebar from '@/components/Layout/DashboardSidebar'
-import DashboardHeader from '@/components/Layout/DashboardHeader'
-import { useAuth } from '@/context/AuthContext'
+import DashboardSidebar from '../../components/Layout/DashboardSidebar'
+import DashboardHeader from '../../components/Layout/DashboardHeader'
+import { useAuth } from '../../context/AuthContext'
 // Corrected: Using 'next/navigation' as required by the App Router.
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
