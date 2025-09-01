@@ -1,7 +1,8 @@
-// src/index.ts
-import app from './server'; // Impor app yang sudah diekspor dari Server.ts
+import { Server } from './server';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
+const server = new Server();
+const app = server.getApp();
 
 app.listen(PORT, () => {
   console.log(`🚀 Local server running on http://localhost:${PORT}`);
