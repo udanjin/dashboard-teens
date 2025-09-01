@@ -35,10 +35,10 @@ export class Server extends OvernightServer {
         }
       },
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Izinkan semua method
-      allowedHeaders: ['Content-Type', 'Authorization'], 
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Izinkan semua method
+      allowedHeaders: ["Content-Type", "Authorization"],
     };
-
+    this.app.options("*", cors(corsOptions));
     this.app.use(cors(corsOptions));
     this.app.use(express.json());
 
