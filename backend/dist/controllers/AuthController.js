@@ -22,56 +22,155 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
-// src/controllers/AuthController.ts
 const core_1 = require("@overnightjs/core");
-const supabase_1 = __importDefault(require("../utils/supabase"));
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const User_1 = __importDefault(require("../models/User"));
+// 1. Impor middleware dan interface AuthenticatedRequest
+const auth_1 = require("../middleware/auth"); // Pastikan path ini benar
 let AuthController = class AuthController {
-    login(req, res) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { email, password } = req.body;
-            const { data, error } = yield supabase_1.default.auth.signInWithPassword({
-                email,
-                password
-            });
-            if (error) {
-                return res.status(401).json({ error: error.message });
-            }
-            return res.status(200).json({
-                user: data.user,
-                session: data.session
-            });
-        });
-    }
+    // Endpoint ini tetap publik, tidak perlu middleware
     register(req, res) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { email, password } = req.body;
-            const { data, error } = yield supabase_1.default.auth.signUp({
-                email,
-                password
-            });
-            if (error) {
-                return res.status(400).json({ error: error.message });
+            const { username, password } = req.body;
+            if (!username || !password) {
+                return res
+                    .status(400)
+                    .json({ error: "Username and password are required" });
             }
-            return res.status(201).json({
-                user: data.user,
-                session: data.session
+            try {
+                const existingUser = yield User_1.default.findOne({ where: { username } });
+                if (existingUser) {
+                    return res.status(400).json({ error: "Username is already taken" });
+                }
+                const hashedPassword = yield bcrypt_1.default.hash(password, 10);
+                const newUser = yield User_1.default.create({
+                    username,
+                    password: hashedPassword,
+                    status: "pending",
+                    role: null,
+                });
+                res
+                    .status(201)
+                    .json({ message: "User registered successfully, pending approval." });
+            }
+            catch (err) {
+                console.error(err);
+                res.status(500).json({ error: "Failed to register user" });
+            }
+        });
+    }
+    // Endpoint ini sekarang dilindungi oleh middleware
+    getPendingUsers(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const pendingUsers = yield User_1.default.findAll({
+                    where: { status: "pending" },
+                    attributes: ["id", "username", "status", "createdAt"],
+                });
+                res.json(pendingUsers);
+            }
+            catch (err) {
+                console.error(err);
+                res.status(500).json({ error: "Failed to fetch pending users" });
+            }
+        });
+    }
+    // Endpoint ini juga dilindungi oleh middleware
+    approveUser(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { id } = req.params;
+            const { role } = req.body;
+            // console.log(role);
+            if (!role) {
+                return res.status(400).json({ error: "Role is required" });
+            }
+            try {
+                const user = yield User_1.default.findByPk(id);
+                const validRoles = ["admin", "fcl", "leader", "sports"];
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+                if (!validRoles.includes(role)) {
+                    return res.status(400).json({
+                        error: `Invalid role specified. Must be one of: ${validRoles.join(", ")}`,
+                    });
+                }
+                user.status = "approved";
+                user.role = role;
+                yield user.save();
+                res.json({
+                    message: `User ${user.username} has been approved as ${role}.`,
+                });
+            }
+            catch (err) {
+                console.error(err);
+                res.status(500).json({ error: "Failed to approve user" });
+            }
+        });
+    }
+    // Endpoint login juga tetap publik
+    login(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { username, password } = req.body;
+            if (!username || !password) {
+                return res
+                    .status(400)
+                    .json({ error: "Username and password are required" });
+            }
+            const user = yield User_1.default.findOne({ where: { username } });
+            if (!user) {
+                return res.status(400).json({ error: "Invalid username or password" });
+            }
+            if (user.status !== "approved") {
+                return res.status(403).json({
+                    error: "Your account has not been approved by an administrator yet.",
+                });
+            }
+            const validPassword = yield bcrypt_1.default.compare(password, user.password);
+            if (!validPassword) {
+                return res.status(400).json({ error: "Invalid username or password" });
+            }
+            const token = jsonwebtoken_1.default.sign({ userId: user.id, username: user.username }, "your-jwt-secret", { expiresIn: "1h" });
+            res.json({
+                message: "Login successful",
+                token,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                },
             });
         });
     }
 };
 exports.AuthController = AuthController;
 __decorate([
-    (0, core_1.Post)('login'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], AuthController.prototype, "login", null);
-__decorate([
-    (0, core_1.Post)('register'),
+    (0, core_1.Post)("register"),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "register", null);
+__decorate([
+    (0, core_1.Get)("pending"),
+    (0, core_1.Middleware)(auth_1.authMiddleware),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "getPendingUsers", null);
+__decorate([
+    (0, core_1.Put)("approve/:id"),
+    (0, core_1.Middleware)(auth_1.authMiddleware),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "approveUser", null);
+__decorate([
+    (0, core_1.Post)("login"),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "login", null);
 exports.AuthController = AuthController = __decorate([
-    (0, core_1.Controller)('api/auth')
+    (0, core_1.Controller)("api/users")
 ], AuthController);

@@ -5,34 +5,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const db_1 = __importDefault(require("../config/db"));
-class User extends sequelize_1.Model {
+class Member extends sequelize_1.Model {
 }
-User.init({
+Member.init({
     id: {
         type: sequelize_1.DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
     },
-    username: {
-        type: sequelize_1.DataTypes.STRING,
-        allowNull: false,
-        unique: true, // Ensure unique username
-    },
-    password: {
+    name: {
         type: sequelize_1.DataTypes.STRING,
         allowNull: false,
     },
-    role: {
-        type: sequelize_1.DataTypes.STRING,
-        allowNull: true,
+    gender: {
+        type: sequelize_1.DataTypes.ENUM("Laki-laki", "Perempuan"),
+        allowNull: false,
+    },
+    grade: {
+        type: sequelize_1.DataTypes.INTEGER,
+        allowNull: false,
     },
     status: {
-        type: sequelize_1.DataTypes.ENUM('pending', 'approved', 'rejected'),
+        type: sequelize_1.DataTypes.ENUM("active", "pending_deletion"),
         allowNull: false,
-        defaultValue: "pending"
-    }
+        defaultValue: "active",
+    },
+    // Definisi kolom alasan penghapusan
+    deletionReason: {
+        type: sequelize_1.DataTypes.TEXT,
+        allowNull: true,
+    },
 }, {
     sequelize: db_1.default,
-    tableName: 'users',
+    tableName: "members",
 });
-exports.default = User;
+exports.default = Member;

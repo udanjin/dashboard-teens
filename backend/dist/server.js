@@ -12,45 +12,67 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Server = void 0;
+// src/Server.ts
 const core_1 = require("@overnightjs/core");
-const body_parser_1 = __importDefault(require("body-parser"));
-// import sportReportRouter from './routes/SportReportRouter';
-// import totalCostRouter from './routes/TotalCostRouter';
-// import uangKasRouter from './routes/UangKasRouter';
+const express_1 = __importDefault(require("express")); // Impor Application
+const AuthController_1 = require("./controllers/AuthController");
 const db_1 = __importDefault(require("./config/db"));
-class AppServer extends core_1.Server {
+const cors_1 = __importDefault(require("cors"));
+const SportReportController_1 = require("./controllers/SportReportController");
+const FclController_1 = require("./controllers/FclController");
+const AttendanceController_1 = require("./controllers/AttendanceController");
+require("./models");
+class Server extends core_1.Server {
     constructor() {
         super();
-        this.app.use(body_parser_1.default.json());
-        this.app.use(body_parser_1.default.urlencoded({ extended: true }));
-        this.setupRoutes();
-        this.setupDatabase();
+        this.setupMiddleware();
+        this.setupControllers();
+        this.connectDb(); // Panggil koneksi DB di constructor
     }
-    setupRoutes() {
-        // this.app.use('/api/sport-reports', sportReportRouter);
-        // this.app.use('/api/total-costs', totalCostRouter);
-        // this.app.use('/api/uang-kas', uangKasRouter);
-        this.app.get('*', (req, res) => {
-            res.status(404).json({ message: 'Route not found' });
+    setupMiddleware() {
+        // Sesuaikan dengan panduan Vercel
+        const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [];
+        const corsOptions = {
+            origin: allowedOrigins,
+        };
+        this.app.use((0, cors_1.default)(corsOptions));
+        this.app.use(express_1.default.json());
+        this.app.use(express_1.default.urlencoded({ extended: true }));
+        this.app.get("/health", (req, res) => {
+            res.json({ status: "OK", timestamp: new Date().toISOString() });
         });
     }
-    setupDatabase() {
+    setupControllers() {
+        super.addControllers([
+            new AuthController_1.AuthController(),
+            new SportReportController_1.SportReportController(),
+            new FclController_1.FclController(),
+            new AttendanceController_1.AttendanceController(),
+        ]);
+    }
+    // Pindahkan logika koneksi dan sinkronisasi ke sini
+    connectDb() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 yield db_1.default.authenticate();
-                yield db_1.default.sync();
-                console.log('Database connected and synced');
+                console.log("✅ Connected to Supabase Postgres");
+                yield db_1.default.sync({ alter: true });
+                console.log("Database & tables synchronized!");
             }
-            catch (error) {
-                console.error('Database connection error:', error);
+            catch (err) {
+                console.error("❌ Failed to connect to DB:", err);
+                process.exit(1);
             }
         });
     }
-    start(port) {
-        this.app.listen(port, () => {
-            console.log(`Server running on port ${port}`);
-        });
+    // Metode start() tidak lagi diperlukan untuk Vercel
+    // public async start(port: number): Promise<void> { ... }
+    getApp() {
+        return this.app;
     }
 }
-const server = new AppServer();
-server.start(3000);
+exports.Server = Server;
+// Buat instance server dan ekspor app-nya untuk Vercel
+const server = new Server();
+exports.default = server.getApp();
