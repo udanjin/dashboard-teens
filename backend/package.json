@@ -14,7 +14,6 @@
   "dependencies": {
     "@overnightjs/core": "^1.7.6",
     "@supabase/supabase-js": "^2.49.4",
-    "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dayjs": "^1.11.14",
