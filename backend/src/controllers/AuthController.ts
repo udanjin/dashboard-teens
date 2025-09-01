@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Put, Middleware } from "@overnightjs/core";
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
 // 1. Impor middleware dan interface AuthenticatedRequest
