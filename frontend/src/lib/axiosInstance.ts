@@ -3,7 +3,7 @@ import axios from "axios";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000/api", // Your backend API URL
+  baseURL: process.env.NEXT_PUBLIC_API_URL, // Your backend API URL
 });
 
 // --- Request Interceptor ---
