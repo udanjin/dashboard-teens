@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import pg from 'pg';
 
 dotenv.config();
-
+console.log("Attempting to connect to host:", `[${process.env.SUPABASE_HOST}]`)
 const sequelize = new Sequelize(
   process.env.SUPABASE_DB!,
   process.env.SUPABASE_USER!,
