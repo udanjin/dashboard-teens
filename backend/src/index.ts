@@ -1,6 +1,8 @@
 // src/index.ts
-import { Server } from './server';  // Ensure you import the class from the correct path
+import app from './server'; // Impor app yang sudah diekspor dari Server.ts
 
-const server = new Server();
-const port = parseInt(process.env.PORT || '3000');
-server.start(port);
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Local server running on http://localhost:${PORT}`);
+});
