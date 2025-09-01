@@ -2,7 +2,7 @@ import { Server as OvernightServer } from "@overnightjs/core";
 import express, { Application, Request, Response } from "express";
 import { AuthController } from "./controllers/AuthController";
 import sequelize from "./config/db";
-import cors from "cors";
+import cors, { CorsOptions } from "cors";
 import { SportReportController } from "./controllers/SportReportController";
 import { FclController } from "./controllers/FclController";
 import { AttendanceController } from "./controllers/AttendanceController";
@@ -17,10 +17,26 @@ export class Server extends OvernightServer {
   }
 
   private setupMiddleware(): void {
-    // Menggunakan environment variable untuk CORS
-    const corsOptions = {
-      origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000",
+    // --- KONFIGURASI CORS YANG LEBIH KUAT ---
+    const allowedOrigins = process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",")
+      : ["http://localhost:3000"];
+
+    // Log ini akan muncul di Vercel dan memberitahu kita nilai yang sebenarnya
+    console.log("Allowed CORS Origins:", allowedOrigins);
+
+    const corsOptions: CorsOptions = {
+      origin: (origin, callback) => {
+        // Izinkan permintaan tanpa origin (seperti dari Postman atau aplikasi mobile)
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
     };
+
     this.app.use(cors(corsOptions));
     this.app.use(express.json());
 
@@ -38,10 +54,8 @@ export class Server extends OvernightServer {
       new FclController(),
       new AttendanceController(),
     ]);
-    console.log(`✅ Controllers added successfully`);
   }
 
-  // Memisahkan koneksi DB agar bisa dipanggil di constructor
   private async connectDb(): Promise<void> {
     try {
       await sequelize.authenticate();
@@ -52,12 +66,10 @@ export class Server extends OvernightServer {
     }
   }
 
-  // Getter untuk Vercel
   public getApp(): Application {
     return this.app;
   }
 }
 
-// Ekspor instance app untuk Vercel
 const server = new Server();
 export default server.getApp();
