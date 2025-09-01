@@ -2,10 +2,10 @@
 
 // Corrected: Changed path aliases to relative paths to resolve the module.
 import { useAuth } from "@/context/AuthContext";
-import SportsHome from "@/components/dashboard/SportsHome";
-import FclAdminHome from "@/components/dashboard/FclHome";
+import SportsHome from "@/components/Dashboard/SportsHome";
+import FclAdminHome from "@/components/Dashboard/FclHome";
 import { Spin, Typography, Space } from "antd";
-import FclAttendanceChart from "@/components/dashboard/FclChart";
+import FclAttendanceChart from "@/components/Dashboard/FclChart";
 
 const { Title } = Typography;
 
