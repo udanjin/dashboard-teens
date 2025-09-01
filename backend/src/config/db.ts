@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+import pg from 'pg';
 
 dotenv.config();
 
@@ -11,6 +12,7 @@ const sequelize = new Sequelize(
     host: process.env.SUPABASE_HOST,
     port: Number(process.env.SUPABASE_PORT),
     dialect: 'postgres',
+    dialectModule: pg,
     dialectOptions: {
       ssl: process.env.NODE_ENV === 'production' ?{
         require: true,
