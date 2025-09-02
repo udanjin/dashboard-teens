@@ -3,14 +3,14 @@
       "target": "es6",
       "module": "commonjs",
       "outDir": "./dist",
-      "rootDir": "./",
+      "rootDir": "./src",
       "strict": true,
       "esModuleInterop": true,
       "skipLibCheck": true,
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true
     },
-    "include": ["src/**/*", "src/utils", "src/index.ts"],
+    "include": ["src/**/*", "src/utils"],
     "exclude": ["node_modules","dist"],
     "paths": {
       "@/*": ["./src/*"]
