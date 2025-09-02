@@ -12,19 +12,15 @@ import "./models";
 export class Server extends OvernightServer {
   constructor() {
     super();
-    this.setupCors();
     this.setupControllers();
     this.setupMiddleware();
     this.connectDb();
   }
 
- private setupCors(): void {
+  private setupMiddleware(): void {
     const allowedOrigins = process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map(origin => origin.trim())
-      : [
-          "http://localhost:3000",
-          "https://dashboard-teens.vercel.app"
-        ];
+      ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+      : ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
 
     console.log("Allowed CORS Origins:", allowedOrigins);
 
@@ -32,21 +28,17 @@ export class Server extends OvernightServer {
       origin: allowedOrigins,
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-      optionsSuccessStatus: 200
+      allowedHeaders: ["Content-Type", "Authorization"],
+      optionsSuccessStatus: 200,
     };
 
     this.app.use(cors(corsOptions));
-    this.app.options("*", cors(corsOptions));
-  }
-
-  private setupMiddleware(): void {
     this.app.use(express.json());
 
     this.app.get("/api/health", (req, res) => {
-      res.status(200).json({ 
-        status: "OK", 
-        timestamp: new Date().toISOString()
+      res.status(200).json({
+        status: "OK",
+        timestamp: new Date().toISOString(),
       });
     });
   }
