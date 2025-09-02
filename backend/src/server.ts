@@ -20,7 +20,11 @@ export class Server extends OvernightServer {
     // --- KONFIGURASI CORS YANG LEBIH KUAT ---
     const allowedOrigins = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",")
-      : ["http://localhost:3000"];
+      : [
+          "http://localhost:3000",
+          "http://localhost:3001",
+          "https://dashboard-teens.vercel.app",
+        ];
 
     // Log ini akan muncul di Vercel dan memberitahu kita nilai yang sebenarnya
     console.log("Allowed CORS Origins:", allowedOrigins);
@@ -36,7 +40,13 @@ export class Server extends OvernightServer {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Izinkan semua method
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+      ],
     };
     this.app.options("*", cors(corsOptions));
     this.app.use(cors(corsOptions));
