@@ -17,46 +17,38 @@ export class Server extends OvernightServer {
     this.connectDb();
   }
 
-   private setupMiddleware(): void {
+  private setupMiddleware(): void {
     const allowedOrigins = process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map(origin => origin.trim())
-      : [
-          "http://localhost:3000",
-          "https://dashboard-teens.vercel.app"
-        ];
+      ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+      : ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
 
     console.log("Allowed CORS Origins:", allowedOrigins);
 
-    // Manual CORS handler
-    this.app.use((req: Request, res: Response, next: NextFunction) => {
-      const origin = req.headers.origin;
-      
-      if (!origin || allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin || '*');
-      }
-      
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin');
-      res.setHeader('Access-Control-Max-Age', '86400');
+    const corsOptions: CorsOptions = {
+      origin: allowedOrigins, // Langsung pass array, jangan pakai function
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+      ],
+      optionsSuccessStatus: 200, // Untuk browser lama
+    };
 
-      // Handle preflight
-      if (req.method === 'OPTIONS') {
-        console.log('Handling preflight for:', req.path);
-        res.sendStatus(204);
-        return;
-      }
-      
-      next();
-    });
+    // PENTING: Handle OPTIONS request dulu sebelum middleware lain
+    this.app.use(cors(corsOptions));
+    this.app.options("*", cors(corsOptions)); // Handle all preflight requests
 
     this.app.use(express.json());
 
     this.app.get("/api/health", (req: Request, res: Response) => {
-      res.status(200).json({ 
-        status: "OK", 
+      res.status(200).json({
+        status: "OK",
         timestamp: new Date().toISOString(),
-        cors: allowedOrigins 
+        cors: allowedOrigins,
       });
     });
   }
