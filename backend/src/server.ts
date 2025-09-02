@@ -25,7 +25,7 @@ export class Server extends OvernightServer {
     console.log("Allowed CORS Origins:", allowedOrigins);
 
     const corsOptions: CorsOptions = {
-      origin: allowedOrigins, // Langsung pass array, jangan pakai function
+      origin: true, // Langsung pass array, jangan pakai function
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowedHeaders: [
