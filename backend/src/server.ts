@@ -12,43 +12,41 @@ import "./models";
 export class Server extends OvernightServer {
   constructor() {
     super();
+    this.setupCors();
     this.setupControllers();
     this.setupMiddleware();
     this.connectDb();
   }
 
-  private setupMiddleware(): void {
+ private setupCors(): void {
     const allowedOrigins = process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
-      : ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
+      ? process.env.CORS_ORIGIN.split(",").map(origin => origin.trim())
+      : [
+          "http://localhost:3000",
+          "https://dashboard-teens.vercel.app"
+        ];
 
     console.log("Allowed CORS Origins:", allowedOrigins);
 
     const corsOptions: CorsOptions = {
-      origin: true, // Langsung pass array, jangan pakai function
+      origin: allowedOrigins,
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-      ],
-      optionsSuccessStatus: 200, // Untuk browser lama
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+      optionsSuccessStatus: 200
     };
 
-    // PENTING: Handle OPTIONS request dulu sebelum middleware lain
     this.app.use(cors(corsOptions));
-    this.app.options("*", cors(corsOptions)); // Handle all preflight requests
+    this.app.options("*", cors(corsOptions));
+  }
 
+  private setupMiddleware(): void {
     this.app.use(express.json());
 
-    this.app.get("/api/health", (req: Request, res: Response) => {
-      res.status(200).json({
-        status: "OK",
-        timestamp: new Date().toISOString(),
-        cors: allowedOrigins,
+    this.app.get("/api/health", (req, res) => {
+      res.status(200).json({ 
+        status: "OK", 
+        timestamp: new Date().toISOString()
       });
     });
   }
