@@ -1,5 +1,6 @@
 import { Server as OvernightServer } from "@overnightjs/core";
-import express, { Application, Request, Response } from "express";
+import express, { Application, NextFunction } from "express";
+import { Request, Response } from "express";
 import { AuthController } from "./controllers/AuthController";
 import sequelize from "./config/db";
 import cors, { CorsOptions } from "cors";
@@ -16,46 +17,47 @@ export class Server extends OvernightServer {
     this.connectDb();
   }
 
-  private setupMiddleware(): void {
-    // --- KONFIGURASI CORS YANG LEBIH KUAT ---
+   private setupMiddleware(): void {
     const allowedOrigins = process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(",")
+      ? process.env.CORS_ORIGIN.split(",").map(origin => origin.trim())
       : [
           "http://localhost:3000",
-          "http://localhost:3001",
-          "https://dashboard-teens.vercel.app",
+          "https://dashboard-teens.vercel.app"
         ];
 
-    // Log ini akan muncul di Vercel dan memberitahu kita nilai yang sebenarnya
     console.log("Allowed CORS Origins:", allowedOrigins);
 
-    const corsOptions: CorsOptions = {
-      origin: (origin, callback) => {
-        // Izinkan permintaan tanpa origin (seperti dari Postman atau aplikasi mobile)
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Izinkan semua method
-      allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Accept",
-        "Origin",
-      ],
-    };
-    this.app.options("*", cors(corsOptions));
-    this.app.use(cors(corsOptions));
+    // Manual CORS handler
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const origin = req.headers.origin;
+      
+      if (!origin || allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      }
+      
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept,Origin');
+      res.setHeader('Access-Control-Max-Age', '86400');
+
+      // Handle preflight
+      if (req.method === 'OPTIONS') {
+        console.log('Handling preflight for:', req.path);
+        res.sendStatus(204);
+        return;
+      }
+      
+      next();
+    });
+
     this.app.use(express.json());
 
     this.app.get("/api/health", (req: Request, res: Response) => {
-      res
-        .status(200)
-        .json({ status: "OK", timestamp: new Date().toISOString() });
+      res.status(200).json({ 
+        status: "OK", 
+        timestamp: new Date().toISOString(),
+        cors: allowedOrigins 
+      });
     });
   }
 
