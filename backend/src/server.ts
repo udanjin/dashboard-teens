@@ -18,6 +18,12 @@ export class Server extends OvernightServer {
   }
 
   private setupMiddleware(): void {
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      console.log("Request Origin:", req.headers.origin);
+      console.log("Request Method:", req.method);
+      console.log("Request URL:", req.url);
+      next();
+    });
     const allowedOrigins = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
       : ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
