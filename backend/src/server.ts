@@ -67,11 +67,11 @@ export class Server extends OvernightServer {
     });
 
     // CORS setup
-    const allowedOrigins = ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
-    console.log("🌐 CORS Origins:", allowedOrigins);
+    // const allowedOrigins = ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
+    // console.log("🌐 CORS Origins:", allowedOrigins);
 
     const corsOptions: CorsOptions = {
-      origin: allowedOrigins,
+      origin: "*",
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
