@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Tag, Button, Modal, Select, message, Space } from "antd";
+import { Table, Tag, Button, Modal, Select, message, Space, Popconfirm } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axiosInstance from "@/lib/axiosInstance";
 import dayjs from "dayjs";
@@ -84,7 +84,7 @@ export default function AdminApprovalPage() {
   const handleRejectUser = async (user: User) => {
     setLoading(true);
     try {
-      await axiosInstance.put(`/users/reject/${user.id}`);
+      await axiosInstance.delete(`/users/reject/${user.id}`);
       message.success(`User ${user.username} has been rejected.`);
       fetchUsers(); // Reload users data
     } catch (error) {
@@ -139,9 +139,18 @@ export default function AdminApprovalPage() {
           >
             Approve
           </Button>
-          <Button danger onClick={() => handleRejectUser(record)} size="small">
-            Reject
-          </Button>
+          <Popconfirm
+            title="Reject User Registration"
+            description={`Are you sure you want to reject ${record.username}? This cannot be undone.`}
+            onConfirm={() => handleRejectUser(record)}
+            okText="Yes, Reject"
+            cancelText="No"
+            placement="topRight" // Optional: Adjust the pop-up position
+          >
+            <Button danger size="small">
+              Reject
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },

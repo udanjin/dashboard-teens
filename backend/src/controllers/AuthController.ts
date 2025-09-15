@@ -1,4 +1,11 @@
-import { Controller, Post, Get, Put, Middleware } from "@overnightjs/core";
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Middleware,
+  Delete,
+} from "@overnightjs/core";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -96,7 +103,31 @@ export class AuthController {
       res.status(500).json({ error: "Failed to approve user" });
     }
   }
+  @Delete("reject/:id")
+  @Middleware(authMiddleware)
+  private async rejectUser(req: AuthenticatedRequest, res: Response) {
+    const { id } = req.params;
+    try {
+      const user = await User.findByPk(id);
+      if (!user) {
+        return res.status(404).json({ error: "user not found" });
+      }
+      if (user.status !== "pending") {
+        return res
+          .status(400)
+          .json({ error: `User is not in a pending state.` });
+      }
+      const username = user.username; // Store username for the response message
+      await user.destroy(); // Delete the user from the database
 
+      res.json({
+        message: `User registration for '${username}' has been rejected and removed.`,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to reject user" });
+    }
+  }
   // Endpoint login juga tetap publik
   @Post("login")
   private async login(req: Request, res: Response): Promise<any> {
