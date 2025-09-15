@@ -9,7 +9,9 @@ export async function login(username: string, password: string): Promise<void> {
     const response = await axiosInstance.post("users/login", {
       username,
       password,
-    });
+    },{ 
+        withCredentials: true // ← EXPLICITLY enable credentials for this request
+      });
 
     const { token } = response.data;
 

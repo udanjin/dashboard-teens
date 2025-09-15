@@ -75,6 +75,7 @@ export class Server extends OvernightServer {
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
+      exposedHeaders: ["Authorization"]
     };
 
     this.app.use(cors(corsOptions));
