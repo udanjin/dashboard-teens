@@ -1,3 +1,5 @@
+// server.ts - CORRECTED VERSION
+
 import { Server as OvernightServer } from "@overnightjs/core";
 import express, { Application, NextFunction } from "express";
 import { Request, Response } from "express";
@@ -12,9 +14,17 @@ import "./models";
 export class Server extends OvernightServer {
   constructor() {
     super();
-    this.setupControllers();
+    // These are synchronous and are safe for the constructor
     this.setupMiddleware();
-    this.connectDb();
+    this.setupControllers();
+  }
+
+  // NEW public start method
+  public async start(port: number): Promise<void> {
+    await this.connectDb(); // Wait for the DB connection to complete
+    this.app.listen(port, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
   }
 
   private setupMiddleware(): void {
@@ -65,13 +75,7 @@ export class Server extends OvernightServer {
       console.log("✅ Database connection and sync successful.");
     } catch (err) {
       console.error("❌ Failed to connect to DB:", err);
+      process.exit(1); // Exit if DB connection fails
     }
   }
-
-  public getApp(): Application {
-    return this.app;
-  }
 }
-
-const server = new Server();
-export default server.getApp();
