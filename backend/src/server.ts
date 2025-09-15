@@ -70,11 +70,13 @@ export class Server extends OvernightServer {
 
   private async connectDb(): Promise<void> {
     try {
+      console.log("Attempting to connect to the database...");
       await sequelize.authenticate();
       await sequelize.sync({ alter: true });
       console.log("✅ Database connection and sync successful.");
     } catch (err) {
       console.error("❌ Failed to connect to DB:", err);
+      console.error("Error details:", err);
       process.exit(1); // Exit if DB connection fails
     }
   }
