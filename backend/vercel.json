@@ -12,7 +12,8 @@
       "dest": "index.ts",
       "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     }
-  ],  "headers": [
+  ],
+  "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
@@ -35,5 +36,4 @@
       ]
     }
   ]
-
 }
