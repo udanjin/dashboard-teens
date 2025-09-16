@@ -2,8 +2,7 @@
 import 'dotenv/config';
 import { Server } from './server';
 
-// 1. Create the server instance. This runs the constructor,
-// setting up all middleware and controllers for both environments.
+
 const serverInstance = new Server();
 
 // 2. Check if we are NOT in a Vercel serverless environment.
@@ -21,7 +20,4 @@ if (!process.env.VERCEL) {
     });
 }
 
-// 3. Export the configured app.
-// Vercel uses this export to handle requests.
-// This line is effectively ignored when you run the server locally.
 export default serverInstance.app;
