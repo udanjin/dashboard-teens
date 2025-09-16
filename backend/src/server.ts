@@ -73,11 +73,9 @@ export class Server extends OvernightServer {
     ];
     console.log("🌐 CORS Origins:", allowedOrigins);
 
-    const corsOptions = {
-      origin: (
-        origin: string | undefined,
-        callback: (err: Error | null, allow?: boolean) => void
-      ) => {
+    const corsOptions: CorsOptions = {
+      origin: (origin, callback) => {
+        // TypeScript now understands these parameters automatically
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
           callback(null, true);
         } else {
