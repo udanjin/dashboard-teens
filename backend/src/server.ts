@@ -16,7 +16,7 @@ export class Server extends OvernightServer {
     console.log("🏗️  Server constructor started");
     super();
     console.log("🏗️  OvernightServer initialized");
-    
+
     this.setupMiddleware();
     console.log("✅ Middleware setup completed");
 
@@ -29,7 +29,7 @@ export class Server extends OvernightServer {
 
   public async start(port: number): Promise<void> {
     console.log("🚀 Start method called with port:", port);
-    
+
     // COMMENT OUT DATABASE CONNECTION TEMPORARILY
     try {
       console.log("🔌 Attempting database connection...");
@@ -38,11 +38,11 @@ export class Server extends OvernightServer {
     } catch (error) {
       console.error("❌ Database connection failed:", error);
     }
-    
+
     console.log("⚠️  Database connection skipped for debugging");
 
     console.log("🌐 About to call app.listen...");
-    
+
     return new Promise<void>((resolve) => {
       const server = this.app.listen(port, "0.0.0.0", () => {
         console.log(`🚀 Server successfully running on port ${port}`);
@@ -51,7 +51,7 @@ export class Server extends OvernightServer {
         resolve();
       });
 
-      server.on('error', (error) => {
+      server.on("error", (error) => {
         console.error("❌ Server error:", error);
       });
     });
@@ -67,19 +67,35 @@ export class Server extends OvernightServer {
     });
 
     // CORS setup
-    const allowedOrigins = ["http://localhost:3000", "https://dashboard-teens.vercel.app"];
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "https://dashboard-teens.vercel.app",
+    ];
     console.log("🌐 CORS Origins:", allowedOrigins);
 
-    const corsOptions: CorsOptions = {
-      origin: allowedOrigins,
+    const corsOptions = {
+      origin: (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void
+      ) => {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
       allowedHeaders: ["Content-Type", "Authorization"],
-      exposedHeaders: ["Authorization"]
     };
 
+    // Handle preflight requests
+    this.app.options("*", cors(corsOptions));
+
+    // Handle all other requests
     this.app.use(cors(corsOptions));
-    this.app.options('*', cors(corsOptions));
+
+    // JSON parser
     this.app.use(express.json());
 
     // Simple health check
@@ -88,7 +104,7 @@ export class Server extends OvernightServer {
       res.status(200).json({
         status: "OK",
         timestamp: new Date().toISOString(),
-        message: "Server is running - basic version"
+        message: "Server is running - basic version",
       });
     });
 
@@ -96,26 +112,30 @@ export class Server extends OvernightServer {
   }
 
   // COMMENT OUT THESE METHODS FOR NOW
-  
+
   private setupControllers(): void {
     console.log("🎮 Setting up controllers...");
-    
+
     try {
       // Import controllers here instead of at the top
       const { AuthController } = require("./controllers/AuthController");
-      const { SportReportController } = require("./controllers/SportReportController");
+      const {
+        SportReportController,
+      } = require("./controllers/SportReportController");
       const { FclController } = require("./controllers/FclController");
-      const { AttendanceController } = require("./controllers/AttendanceController");
+      const {
+        AttendanceController,
+      } = require("./controllers/AttendanceController");
 
       console.log("🔐 Initializing AuthController...");
       const authController = new AuthController();
-      
+
       console.log("⚽ Initializing SportReportController...");
       const sportController = new SportReportController();
-      
+
       console.log("📋 Initializing FclController...");
       const fclController = new FclController();
-      
+
       console.log("📊 Initializing AttendanceController...");
       const attendanceController = new AttendanceController();
 
@@ -126,7 +146,7 @@ export class Server extends OvernightServer {
         fclController,
         attendanceController,
       ]);
-      
+
       console.log("🎮 Controllers setup completed");
     } catch (error) {
       console.error("❌ Controller setup error:", error);
@@ -136,18 +156,17 @@ export class Server extends OvernightServer {
 
   private async connectDb(): Promise<void> {
     console.log("🔌 Database connection attempt starting...");
-    
+
     try {
       const sequelize = require("./config/db").default;
-      
+
       console.log("🔍 Testing database authentication...");
       await sequelize.authenticate();
       console.log("✅ Database authentication successful");
-      
+
       console.log("🔄 Syncing database schema...");
       await sequelize.sync({ alter: true });
       console.log("✅ Database sync completed");
-      
     } catch (error) {
       console.error("❌ Database connection failed:");
       console.error("Error name:", (error as Error)?.name);
@@ -155,7 +174,6 @@ export class Server extends OvernightServer {
       throw error;
     }
   }
-  
 }
 
 console.log("🔥 Server class definition completed");
