@@ -15,8 +15,9 @@ export default function DashboardLayout({
   const { isAuthenticated, loading, logout, user } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  const [isCollapsed, setIsCollapsed] = useState(true); // Default diciutkan
+  const [isHovered, setIsHovered] = useState(false);
+  const isEffectivelyCollapsed = isCollapsed && !isHovered;
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
@@ -36,26 +37,26 @@ export default function DashboardLayout({
       <DashboardSidebar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
-        isCollapsed={sidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isHovered={isHovered}
+        setIsHovered={setIsHovered}
       />
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`relative transition-all duration-300 w-full overflow-x-hidden ${
+          // ================== LOGIKA YANG DIPERBARUI ==================
+          // Mengganti kelas margin secara langsung untuk menghindari masalah prioritas CSS
+          isEffectivelyCollapsed ? "lg:ml-20" : "lg:ml-64"
+        }`}
+      >
+        {/* Asumsi Anda memiliki komponen Header yang juga perlu tahu status sidebar */}
         <DashboardHeader
           user={user}
           onLogout={logout}
           onMenuClick={() => setSidebarOpen(true)}
-          isCollapsed={sidebarCollapsed}
+          sidebarCollapsed={isCollapsed}
         />
-         <main className={`flex-1 overflow-auto pt-[64px] transition-all duration-300 ${
-          // Mobile: no left padding
-          "pl-0 " +
-          // Desktop: adjust padding berdasarkan sidebar state
-          (sidebarCollapsed ? "lg:pl-[80px]" : "lg:pl-[250px]")
-        }`}>
-          <div className="p-3 sm:p-4 lg:p-6">
-            {children}
-          </div>
-        </main>
+        <main className="px-6 pb-6 pt-20">{children}</main>
       </div>
     </div>
   );

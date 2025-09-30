@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Form,
@@ -26,22 +26,22 @@ import {
   EditOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-// Corrected: Reverted to the path alias for consistency with your project structure.
 import axiosInstance from "@/lib/axiosInstance";
-// Corrected: Reverted to the path alias for consistency with your project structure.
 import { useAuth } from "@/context/AuthContext";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import "dayjs/locale/id";
 dayjs.locale("id");
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+// --- Interface Definitions ---
 interface Member {
   presentCount: number;
   absentCount: number;
   id: number;
   name: string;
+  dob?: string | null;
 }
 
 interface AttendanceRecord {
@@ -50,6 +50,14 @@ interface AttendanceRecord {
   [date: string]: any;
 }
 
+interface LeaderUserInfo {
+  username?: string;
+  grade?: number;
+  gender?: string;
+  roles?: string;
+}
+
+// --- Attendance Button Component ---
 const AttendanceButton = ({
   status,
   onClick,
@@ -75,6 +83,7 @@ const AttendanceButton = ({
   );
 };
 
+// --- Main FCL Page Component ---
 export default function FclPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -84,7 +93,8 @@ export default function FclPage() {
   const [searchText, setSearchQuery] = useState("");
   const [form] = Form.useForm();
   const { user } = useAuth();
-
+  const leader = user as LeaderUserInfo | null;
+  const isAdmin = leader?.roles?.includes("admin");
   const [attendanceDate, setAttendanceDate] = useState(dayjs());
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -92,7 +102,7 @@ export default function FclPage() {
   const [deleteReason, setDeleteReason] = useState("");
   const [statsDate, setStatsDate] = useState(dayjs());
 
-  const fetchMembers = async (date: dayjs.Dayjs) => {
+  const fetchMembers = async (date: Dayjs) => {
     setLoading(true);
     try {
       const membersRes = await axiosInstance.get("/fcl/my-members");
@@ -133,26 +143,62 @@ export default function FclPage() {
     }
   }, [searchText, members]);
 
-  const handleAddMemberFinish = async (values: any) => {
+  const handleAddMemberFinish = async (values: {
+    names: { name: string; dob: Dayjs }[];
+  }) => {
     setLoading(true);
-    const membersData = values.names.map((item: { name: string }) => ({
+
+    if (!leader?.grade || !leader?.gender) {
+      message.error(
+        "Your leader profile is incomplete. Cannot add new members."
+      );
+      setLoading(false);
+      return;
+    }
+
+    const membersData = values.names.map((item) => ({
       name: item.name,
-      grade: values.grade,
-      gender: values.gender,
+      dob: item.dob ? item.dob.format("YYYY-MM-DD") : null,
+      grade: leader.grade,
+      gender: leader.gender,
     }));
+
     try {
       await axiosInstance.post("/fcl/members", { membersData });
       message.success("Members added successfully!");
       setIsAddMemberModalOpen(false);
       fetchMembers(statsDate);
-    } catch (error) {
-      message.error("Failed to add members.");
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const getSundaysOfMonth = (date: dayjs.Dayjs) => {
+  // Fungsi untuk menampilkan modal
+  const showAddMemberModal = () => {
+    setIsAddMemberModalOpen(true);
+  };
+
+  // Fungsi untuk menutup modal dan membersihkan form
+  const handleCancelAddMember = () => {
+    setIsAddMemberModalOpen(false);
+    form.resetFields();
+  };
+
+  // Efek untuk mengisi form secara dinamis saat modal dibuka dan data leader tersedia
+  useEffect(() => {
+    if (isAddMemberModalOpen && leader) {
+      form.setFieldsValue({
+        grade: leader.grade,
+        gender: leader.gender,
+        names: [{ name: "", dob: null }],
+      });
+    }
+  }, [isAddMemberModalOpen, leader, form]);
+
+  const getSundaysOfMonth = (date: Dayjs) => {
     const sundays = [];
     const start = date.startOf("month");
     let currentSunday = start.day(7);
@@ -166,11 +212,13 @@ export default function FclPage() {
     return sundays;
   };
 
-  const fetchAttendanceSheet = async (date: dayjs.Dayjs) => {
+  const fetchAttendanceSheet = async (date: Dayjs) => {
     setLoading(true);
     try {
-      const membersResponse = await axiosInstance.get("/fcl/my-members");
-      const membersList: Member[] = membersResponse.data;
+      const membersResponse = await axiosInstance.get<Member[]>(
+        "/fcl/my-members"
+      );
+      const membersList = membersResponse.data;
       if (membersList.length === 0) {
         setAttendanceData([]);
         return;
@@ -270,14 +318,16 @@ export default function FclPage() {
       message.error("Failed to submit attendance.");
     } finally {
       setLoading(false);
-      fetchMembers(statsDate)
+      fetchMembers(statsDate);
     }
   };
+
   const showDeleteModal = (member: Member) => {
     setMemberToDelete(member);
     setIsDeleteModalOpen(true);
-    setDeleteReason(""); // Reset alasan setiap kali modal dibuka
+    setDeleteReason("");
   };
+
   const handleDelete = async () => {
     if (!memberToDelete || !deleteReason.trim()) {
       message.error("Reason for deletion is required.");
@@ -291,14 +341,23 @@ export default function FclPage() {
       setIsDeleteModalOpen(false);
       setMemberToDelete(null);
       fetchMembers(statsDate);
-    } catch (err) {}
+    } catch (err) {
+      message.error("Failed to submit deletion request.");
+    }
   };
+
   const memberColumns: ColumnsType<Member> = [
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
+    },
+    {
+      title: "Date of Birth",
+      dataIndex: "dob",
+      key: "dob",
+      sorter: (a, b) => dayjs(a.dob).diff(dayjs(b.dob)),
     },
     {
       title: "Present",
@@ -364,7 +423,21 @@ export default function FclPage() {
           <Title level={2} className="mb-0">
             FCL Management
           </Title>
-          <Text type="secondary">Leader: {user?.username}</Text>
+          <div className="flex flex-col justify-between">
+            <div>
+              <Text strong>Name: {leader?.username}</Text>
+            </div>
+            {!leader?.roles?.includes("admin") && (
+              <>
+                <div>
+                  <Text strong>Grade: {leader?.grade || leader?.roles}</Text>
+                </div>
+                <div>
+                  <Text strong>Gender: {leader?.gender}</Text>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -380,11 +453,13 @@ export default function FclPage() {
             value={searchText}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Button onClick={handleAttendanceClick}>Take Attendance</Button>
+
+          <Button onClick={handleAttendanceClick} disabled={isAdmin}>Take Attendance</Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => setIsAddMemberModalOpen(true)}
+            onClick={showAddMemberModal}
+            disabled={isAdmin}
           >
             Add Member
           </Button>
@@ -402,42 +477,27 @@ export default function FclPage() {
       <Modal
         title="Add New Members"
         open={isAddMemberModalOpen}
-        onCancel={() => setIsAddMemberModalOpen(false)}
+        onCancel={handleCancelAddMember}
         footer={null}
         destroyOnClose
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleAddMemberFinish}
-          initialValues={{ names: [{ name: "" }] }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="grade"
-              label="Grade"
-              rules={[{ required: true, message: "Please input the grade!" }]}
-            >
-              <InputNumber placeholder="e.g., 10" className="w-full" />
+        <Form form={form} layout="vertical" onFinish={handleAddMemberFinish}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <Form.Item name="grade" label="Grade">
+              <InputNumber className="w-full" disabled />
             </Form.Item>
-            <Form.Item
-              name="gender"
-              label="Gender"
-              rules={[{ required: true, message: "Please select a gender!" }]}
-            >
-              <Select placeholder="Select a gender">
-                <Option value="Laki-laki">Laki-laki</Option>
-                <Option value="Perempuan">Perempuan</Option>
-              </Select>
+            <Form.Item name="gender" label="Gender">
+              <Input className="w-full" disabled />
             </Form.Item>
           </div>
-          <Form.Item label="Member Names">
+
+          <Form.Item label="Member Details">
             <Form.List name="names">
               {(fields, { add, remove }) => (
                 <>
                   <div className="space-y-3">
                     {fields.map(({ key, name, ...restField }) => (
-                      <div key={key} className="flex items-baseline gap-2">
+                      <div key={key} className="flex items-start gap-2">
                         <Form.Item
                           {...restField}
                           name={[name, "name"]}
@@ -450,6 +510,22 @@ export default function FclPage() {
                           className="flex-1 mb-0"
                         >
                           <Input placeholder="Member's Name" />
+                        </Form.Item>
+                        <Form.Item
+                          {...restField}
+                          name={[name, "dob"]}
+                          rules={[
+                            {
+                              required: true,
+                              message: "Please select date of birth!",
+                            },
+                          ]}
+                          className="flex-1 mb-0"
+                        >
+                          <DatePicker
+                            placeholder="Date of Birth"
+                            className="w-full"
+                          />
                         </Form.Item>
                         {fields.length > 1 && (
                           <Button
@@ -476,10 +552,7 @@ export default function FclPage() {
             </Form.List>
           </Form.Item>
           <Form.Item className="text-right mb-0">
-            <Button
-              onClick={() => setIsAddMemberModalOpen(false)}
-              className="mr-2"
-            >
+            <Button onClick={handleCancelAddMember} className="mr-2">
               Cancel
             </Button>
             <Button type="primary" htmlType="submit" loading={loading}>
@@ -521,7 +594,6 @@ export default function FclPage() {
         />
       </Modal>
       <Modal
-        // FIX: Menambahkan pengecekan untuk memastikan memberToDelete tidak null
         title={
           memberToDelete
             ? `Request to Delete ${memberToDelete.name}`

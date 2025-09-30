@@ -1,11 +1,10 @@
 // components/RoleProtection.tsx
 'use client'
 
-import { useContext, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { Result, Button } from 'antd'
-import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { Result, Button, Spin } from 'antd'
 
 interface RoleProtectionProps {
   children: React.ReactNode
@@ -21,32 +20,41 @@ export default function RoleProtection({
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
 
+  // 1. Update hasAccess function to check an array of roles
   const hasAccess = (): boolean => {
-    if (!user || !user.role) return false
+    if (!user || !user.roles) return false
     
     // Admin can access everything
-    if (user.role === 'admin') return true
+    if (user.roles.includes('admin')) return true
     
-    // Check if user's role is in the allowed roles array
-    return allowedRoles.includes(user.role)
+    // Check if user has at least one of the allowed roles
+    return user.roles.some(role => allowedRoles.includes(role))
   }
 
-  // Show loading while authentication is being checked
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <Spin size="large" />
       </div>
     )
   }
 
-  // Redirect to login if not authenticated
-  if (!isAuthenticated || !user) {
-    router.push('/login')
-    return null
-  }
+  // Use useEffect to handle redirection after loading is complete
+  useEffect(() => {
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.push('/login');
+      } else if (!hasAccess()) {
+        // We don't redirect here, we show the 403 component below
+      }
+    }
+  }, [loading, isAuthenticated, user, router]);
 
-  // Show access denied if user doesn't have required role
+  if (!isAuthenticated) {
+    // Return null or a loader while redirecting
+    return null;
+  }
+  
   if (!hasAccess()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -68,11 +76,10 @@ export default function RoleProtection({
     )
   }
 
-  // Render children if user has access
   return <>{children}</>
 }
 
-// Higher-order component for easier usage
+// Higher-order component remains the same
 export function withRoleProtection(
   WrappedComponent: React.ComponentType<any>,
   allowedRoles: string[],

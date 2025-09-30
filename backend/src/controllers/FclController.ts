@@ -7,12 +7,8 @@ import {
   Put,
 } from "@overnightjs/core";
 import { Request, Response } from "express";
-import User from "../models/User";
-import Member from "../models/Member";
+import { User, Member, Role, Attendance } from "../models";
 import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
-
-import Attendance from "../models/Attendance";
-
 import sequelize from "../config/db";
 import { roleAuthMiddleware } from "../middleware/roleAuth";
 import { Op, Sequelize } from "sequelize";
@@ -35,41 +31,60 @@ export class FclController {
     if (!leaderId) {
       return res.status(400).json({ error: "Unathourized" });
     }
+    const transaction = await sequelize.transaction();
     try {
       const leader = await User.findByPk(leaderId);
       if (!leader) {
-        return res.status(404).json({ error: "leader not found" });
+        await transaction.rollback();
+        return res.status(404).json({ error: "Leader not Found" });
       }
-      const memberInstances = await Promise.all(
-        membersData.map((memberInfo) => {
-          if (!memberInfo.name || !memberInfo.grade || !memberInfo.gender) {
-            throw new Error(
-              `Invalid data for member: ${JSON.stringify(memberInfo)}`
-            );
-          }
-          const gradeAsNumber = parseInt(memberInfo.grade, 10);
-          if (isNaN(gradeAsNumber)) {
-            throw new Error(
-              `'grade' must be a valid number for member: ${memberInfo.name}`
-            );
-          }
-          return Member.findOrCreate({
-            where: {
-              name: memberInfo.name,
-              grade: gradeAsNumber,
-              gender: memberInfo.gender,
-            },
+      for (const memberInfo of membersData) {
+        if (
+          !memberInfo.name ||
+          !memberInfo.grade ||
+          !memberInfo.gender ||
+          !memberInfo.dob
+        ) {
+          throw new Error(
+            `Invalid data for member: ${JSON.stringify(memberInfo)}`
+          );
+        }
+        const existingMember = await (leader as any).getMembers({
+          where: { name: memberInfo.name },
+          transaction,
+        });
+        if (existingMember.length > 0) {
+          await transaction.rollback();
+          return res.status(404).json({
+            error: `Member with name "${memberInfo.name}" already exist for this leader.`,
           });
-        })
-      );
-      const members = memberInstances.map(([member]) => member);
-      await (leader as any).addMembers(members);
+        }
+        const gradeAsNumber = parseInt(memberInfo.grade, 10);
+        if (isNaN(gradeAsNumber)) {
+          throw new Error(
+            `'grade' must be a valid number for member: ${memberInfo.name}`
+          );
+        }
+        const newMember = await Member.create(
+          {
+            name: memberInfo.name,
+            grade: gradeAsNumber,
+            gender: memberInfo.gender,
+            dob: memberInfo.dob,
+          },
+          { transaction }
+        );
+        await (leader as any).addMember(newMember, { transaction });
+      }
+      await transaction.commit();
       res
         .status(201)
-        .json({ message: `${members.length} members added succesfully` });
-    } catch (err) {
-      console.log(err);
-      res.status(500).json({ error: "Failed to add members" });
+        .json({ message: `${membersData.length} members added succcesfully` });
+    } catch (error: any) {
+      await transaction.rollback();
+      console.error("Failed to add members", error);
+      const errorMessage = error.message || "Failed to add members";
+      res.status(500).json({ error: errorMessage });
     }
   }
 
@@ -113,13 +128,21 @@ export class FclController {
       const endDate = targetDate.endOf("month").format("YYYY-MM-DD");
 
       const leaders = await User.findAll({
-        where: { role: { [Op.in]: ["fcl", "leader", "admin"] } },
-        attributes: ["id", "username"],
+        attributes: ["id", "username", "grade", "gender"],
         include: [
+          {
+            model: Role,
+            as: "roles",
+            where: {
+              name: { [Op.in]: ["fcl", "leader"] },
+            },
+            attributes: [],
+            through: { attributes: [] },
+          },
           {
             model: Member,
             as: "members",
-            attributes: ["id", "name", "grade", "gender"],
+            attributes: ["id", "name", "dob"],
             through: { attributes: [] },
           },
         ],
@@ -165,6 +188,8 @@ export class FclController {
         return {
           leaderId: leader.id,
           leaderName: leader.username,
+          grade: leader.grade,
+          gender: leader.gender,
           members: membersWithStats,
         };
       });
@@ -173,32 +198,6 @@ export class FclController {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch FCL summary" });
-    }
-  }
-  @Put("request-delete/:id")
-  @Middleware(authMiddleware)
-  private async requestDeleteMember(req: AuthenticatedRequest, res: Response) {
-    const { reason } = req.body;
-    const { id } = req.params;
-    if (!reason || typeof reason !== "string" || reason.trim() === "") {
-      return res
-        .status(400)
-        .json({ error: "A reason for deletion is required" });
-    }
-    try {
-      const member = await Member.findByPk(id);
-      if (!member) {
-        return res.status(404).json({ error: "member not found" });
-      }
-      member.status = "pending_deletion";
-      member.deletionReason = reason;
-      await member.save();
-      return res.status(200).json({
-        message: "equest to delete member has been submitted for approval.",
-      });
-    } catch (err) {
-      console.log(err);
-      return res.status(400).json({ error: "failed to delete member" });
     }
   }
 
@@ -211,19 +210,22 @@ export class FclController {
     try {
       const { month, year, gender, grade, leaderName } = req.query;
       const targetDate = month && year ? dayjs(`${year}-${month}-01`) : dayjs();
-      const startDate = targetDate.startOf("month");
-      const endDate = targetDate.endOf("month");
-
       const memberWhere: any = {};
       if (gender) memberWhere.gender = gender as string;
       if (grade) memberWhere.grade = parseInt(grade as string, 10);
 
-      const leaderWhere: any = { role: { [Op.in]: ["fcl", "leader",'admin'] } };
-      if (leaderName) leaderWhere.username = leaderName as string;
-
       const leaders = await User.findAll({
-        where: leaderWhere,
         include: [
+          {
+            // 1. Include the Role model to filter by role name
+            model: Role,
+            as: "roles",
+            where: {
+              name: { [Op.in]: ["fcl", "leader"] },
+            },
+            attributes: [], // We don't need role data in the result
+            through: { attributes: [] },
+          },
           {
             model: Member,
             as: "members",
@@ -295,6 +297,34 @@ export class FclController {
     }
     return sundays;
   }
+
+  @Put("request-delete/:id")
+  @Middleware(authMiddleware)
+  private async requestDeleteMember(req: AuthenticatedRequest, res: Response) {
+    const { reason } = req.body;
+    const { id } = req.params;
+    if (!reason || typeof reason !== "string" || reason.trim() === "") {
+      return res
+        .status(400)
+        .json({ error: "A reason for deletion is required" });
+    }
+    try {
+      const member = await Member.findByPk(id);
+      if (!member) {
+        return res.status(404).json({ error: "member not found" });
+      }
+      member.status = "pending_deletion";
+      member.deletionReason = reason;
+      await member.save();
+      return res.status(200).json({
+        message: "equest to delete member has been submitted for approval.",
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({ error: "failed to delete member" });
+    }
+  }
+
   @Get("deletion-request")
   @Middleware([authMiddleware, roleAuthMiddleware(["admin", "fcl"])])
   private async getDeletionRequest(
@@ -302,16 +332,43 @@ export class FclController {
     res: Response
   ): Promise<any> {
     try {
-      const req = await Member.findAll({
+      const pendingMembers = await Member.findAll({
         where: {
           status: "pending_deletion",
         },
-        attributes: ["id", "name", "grade", "gender", "deletionReason"],
+        attributes: ["id", "name", "dob", "deletionReason"],
+        include: [
+          {
+            model: User,
+            as: "leaders",
+            attributes: ["username", "grade", "gender"],
+            through: { attributes: [] },
+          },
+        ],
       });
-      res.json(req);
+
+      // Transform data for a clean, flat response structure for the frontend
+      const responseData = pendingMembers.map((member) => {
+        const leaderInfo =
+          member.leaders && member.leaders.length > 0
+            ? member.leaders[0]
+            : null;
+
+        return {
+          id: member.id,
+          name: member.name,
+          dob: member.dob,
+          deletionReason: member.deletionReason,
+          grade: leaderInfo ? leaderInfo.grade : null,
+          gender: leaderInfo ? leaderInfo.gender : null,
+          leaderName: leaderInfo ? leaderInfo.username : "N/A",
+        };
+      });
+
+      res.json(responseData);
     } catch (err) {
-      console.log(err);
-      res.status(500).json({ error: "Failed to fetch deletion request" });
+      console.error("Failed to fetch deletion requests:", err);
+      res.status(500).json({ error: "Failed to fetch deletion requests" });
     }
   }
 
@@ -364,6 +421,50 @@ export class FclController {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Failed to reject deletion" });
+    }
+  }
+
+  @Get("birthdays")
+  public async getBirthday(req: Request, res: Response) {
+    try {
+      // Query ini menggabungkan data dari dua tabel:
+      // 1. Mengambil 'dob' dan 'username' dari tabel 'users'.
+      // 2. Mengambil 'dob' dan 'name' dari tabel 'members'.
+      // 'UNION ALL' digunakan untuk menggabungkan hasil dari kedua query tersebut.
+      // Tipe 'User' atau 'Member' ditambahkan untuk membedakan asal data di frontend jika diperlukan.
+
+      const query = `
+        SELECT 
+          dob AS "date", 
+          username AS "name", 
+          'User' AS "type" 
+        FROM 
+          users 
+        WHERE 
+          dob IS NOT NULL
+        UNION ALL
+        SELECT 
+          dob AS "date", 
+          name, 
+          'Member' AS "type" 
+        FROM 
+          members 
+        WHERE 
+          dob IS NOT NULL;
+      `;
+
+      // Menjalankan raw query menggunakan Sequelize
+      const birthdays = await sequelize.query(query, {
+        type: "SELECT", // Menentukan tipe query sebagai SELECT
+      });
+
+      // Mengirimkan data sebagai respons
+      return res.status(200).json(birthdays);
+    } catch (error) {
+      console.error("Error fetching birthdays:", error);
+      return res
+        .status(500)
+        .json({ error: "An internal server error occurred" });
     }
   }
 }

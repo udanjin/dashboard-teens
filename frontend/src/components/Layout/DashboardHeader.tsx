@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import {
   Dropdown,
   Avatar,
@@ -19,55 +20,58 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import { act, useEffect, useState } from "react";
-import axios from "axios";
 import axiosInstance from "@/lib/axiosInstance";
+import { UserInfo } from "@/types"; // Impor dari file types terpusat
 
-interface UserInfo {
-  name: string;
-  username: string;
-  role?: string;
-}
-
+// Interface props diperbarui untuk menerima 'user' dan 'onLogout'
 interface DashboardHeaderProps {
   user: UserInfo | null;
   onLogout: () => void;
   onMenuClick: () => void;
-  isCollapsed: boolean;
+  sidebarCollapsed: boolean;
 }
+
 interface DeletionRequest {
   id: number;
   name: string;
   deletionReason: string;
 }
+
 export default function DashboardHeader({
   user,
   onLogout,
   onMenuClick,
-  isCollapsed,
+  sidebarCollapsed,
 }: DashboardHeaderProps) {
-  const [request, setRequest] = useState<DeletionRequest[]>([]);
+  const [requests, setRequests] = useState<DeletionRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] =
     useState<DeletionRequest | null>(null);
 
+  const hasAccess = (requiredRoles: string[]): boolean => {
+    if (!user || !user.roles) return false;
+    return user.roles.some((role) => requiredRoles.includes(role));
+  };
+
   const fetchDeleteReq = async () => {
-    if (user?.role !== "admin" && user!.role !== "fcl") return;
+    if (!hasAccess(["admin", "fcl"])) return;
     setLoading(true);
     try {
       const res = await axiosInstance.get("/fcl/deletion-request");
-      setRequest(res.data);
+      setRequests(res.data);
     } catch (err) {
-      console.error("Failed to fetch", err);
+      console.error("Failed to fetch deletion requests", err);
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchDeleteReq();
   }, [user]);
-  const handleNotification = (request: DeletionRequest) => {
+
+  const handleNotificationClick = (request: DeletionRequest) => {
     setSelectedRequest(request);
     setIsConfirmModalOpen(true);
   };
@@ -93,7 +97,8 @@ export default function DashboardHeader({
       setLoading(false);
     }
   };
-  const items: MenuProps["items"] = [
+
+  const userMenuItems: MenuProps["items"] = [
     {
       key: "1",
       label: (
@@ -103,21 +108,11 @@ export default function DashboardHeader({
         </div>
       ),
     },
-    {
-      type: "divider",
-    },
-    {
-      key: "2",
-      label: "Profile",
-      icon: <UserOutlined />,
-    },
-    {
-      key: "3",
-      label: "Logout",
-      icon: <LogoutOutlined />,
-      onClick: onLogout,
-    },
+    { type: "divider" },
+    { key: "2", label: "Profile", icon: <UserOutlined /> },
+    { key: "3", label: "Logout", icon: <LogoutOutlined />, onClick: onLogout },
   ];
+
   const notificationDropdown = (
     <div className="bg-white rounded-md shadow-lg border w-80">
       <div className="p-4 border-b">
@@ -125,12 +120,12 @@ export default function DashboardHeader({
       </div>
       <List
         loading={loading}
-        dataSource={request}
+        dataSource={requests}
         locale={{ emptyText: <Empty description="No new notifications" /> }}
         renderItem={(item) => (
           <List.Item
             className="hover:bg-gray-50 cursor-pointer"
-            onClick={() => handleNotification(item)}
+            onClick={() => handleNotificationClick(item)}
           >
             <div className="w-full px-4 py-2">
               <p className="font-semibold">{item.name}</p>
@@ -143,16 +138,10 @@ export default function DashboardHeader({
       />
     </div>
   );
+
   return (
     <>
-      <header
-        className={`fixed top-0 h-16 bg-white shadow-sm z-30 flex items-center px-6 transition-all duration-300 ${
-          "left-0 w-full " +
-          (isCollapsed
-            ? "lg:left-[80px] lg:w-[calc(100%-80px)]"
-            : "lg:left-[250px] lg:w-[calc(100%-250px)]")
-        }`}
-      >
+      <header className="h-16 bg-white shadow-sm shrink-0 flex items-center px-6">
         <div className="flex justify-between items-center w-full">
           <Button
             type="text"
@@ -161,18 +150,18 @@ export default function DashboardHeader({
             className="lg:hidden"
           />
           <div className="flex items-center gap-6 ml-auto">
-            {(user?.role === "admin" || user?.role === "fcl") && (
+            {hasAccess(["admin", "fcl"]) && (
               <Dropdown
                 dropdownRender={() => notificationDropdown}
                 trigger={["click"]}
               >
-                <Badge count={request.length} className="cursor-pointer">
+                <Badge count={requests.length} className="cursor-pointer">
                   <BellOutlined className="text-gray-500 text-xl" />
                 </Badge>
               </Dropdown>
             )}
             <Dropdown
-              menu={{ items: items }}
+              menu={{ items: userMenuItems }}
               trigger={["click"]}
               placement="bottomRight"
             >
@@ -186,8 +175,6 @@ export default function DashboardHeader({
           </div>
         </div>
       </header>
-
-      {/* Modal Konfirmasi Approval */}
       <Modal
         title="Confirm Deletion Request"
         open={isConfirmModalOpen}
@@ -215,7 +202,7 @@ export default function DashboardHeader({
         {selectedRequest && (
           <div>
             <p>
-              Are you sure you want to approve the deletion of
+              Are you sure you want to approve the deletion of{" "}
               <strong>{selectedRequest.name}</strong>?
             </p>
             <p className="mt-2 text-gray-500">
@@ -227,3 +214,4 @@ export default function DashboardHeader({
     </>
   );
 }
+

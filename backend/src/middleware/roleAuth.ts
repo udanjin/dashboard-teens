@@ -1,35 +1,40 @@
 import { Response, NextFunction } from 'express';
-// Impor AuthenticatedRequest dari file authMiddleware Anda
 import { AuthenticatedRequest } from './auth'; 
 import User from '../models/User';
+import Role from '../models/Role'; // <-- Import the Role model
 
-// Middleware ini adalah sebuah fungsi yang mengembalikan fungsi lain (higher-order function).
-// Ini memungkinkan kita untuk memberikan argumen 'allowedRoles' saat menggunakannya.
 export const roleAuthMiddleware = (allowedRoles: string[]) => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userId = req.user?.userId;
 
-    // Sebenarnya validasi ini sudah dilakukan oleh authMiddleware,
-    // tapi ini adalah lapisan pengaman tambahan.
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-      // Cari pengguna di database untuk mendapatkan role-nya
-      const user = await User.findByPk(userId);
+      // 1. Fetch the user AND their associated roles
+      const user = await User.findByPk(userId, {
+        include: [{
+          model: Role,
+          as: 'roles',
+          attributes: ['name'] // Only need the role name
+        }]
+      });
 
-      // Jika pengguna tidak ditemukan atau tidak memiliki role
-      if (!user || !user.role) {
-        return res.status(403).json({ error: 'Forbidden: No role assigned' });
+      // 2. Check if the user or their roles exist
+      if (!user || !user.roles || user.roles.length === 0) {
+        return res.status(403).json({ error: 'Forbidden: No roles assigned' });
       }
 
-      // Periksa apakah role pengguna ada di dalam daftar role yang diizinkan
-      if (allowedRoles.includes(user.role)) {
-        // Jika diizinkan, lanjutkan ke fungsi controller berikutnya
-        next(); 
+      // 3. Extract the names of the user's roles into a simple array
+      const userRoleNames = user.roles.map(role => role.name); // e.g., ['fcl', 'leader']
+
+      // 4. Check if the user's roles array has at least one of the allowed roles
+      const hasPermission = userRoleNames.some(roleName => allowedRoles.includes(roleName));
+
+      if (hasPermission) {
+        next(); // Permission granted, continue
       } else {
-        // Jika tidak, kirim error 403 Forbidden
         return res.status(403).json({ error: 'Forbidden: You do not have permission for this action' });
       }
     } catch (error) {

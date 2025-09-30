@@ -1,45 +1,42 @@
-'use client'
+"use client";
 
-import { Layout } from 'antd'
-import DashboardSidebar from '@/components/Layout/DashboardSidebar'
-import DashboardHeader from '@/components/Layout/DashboardHeader'
-import { useAuth } from '@/context/AuthContext'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Layout } from "antd";
+import DashboardSidebar from "@/components/Layout/DashboardSidebar";
+import DashboardHeader from "@/components/Layout/DashboardHeader";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default function FclLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const { isAuthenticated, loading, logout, user } = useAuth()
-  const router = useRouter()
+export default function FclLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading, logout, user } = useAuth();
+  const router = useRouter();
 
   // State untuk mengontrol sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  const [isCollapsed, setIsCollapsed] = useState(true); // Default diciutkan
+  const [isHovered, setIsHovered] = useState(false);
+  const isEffectivelyCollapsed = isCollapsed && !isHovered;
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router]);
 
   // Auto-collapse sidebar pada layar kecil
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setSidebarCollapsed(true);
+        setIsCollapsed(true);
       } else if (window.innerWidth >= 1024) {
-        setSidebarCollapsed(false);
+        setIsCollapsed(false);
       }
     };
 
     // Set initial state
     handleResize();
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   if (loading || !isAuthenticated) {
@@ -47,38 +44,36 @@ export default function FclLayout({
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <DashboardSidebar 
-        isOpen={sidebarOpen} 
+      <DashboardSidebar
+        isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
-        isCollapsed={sidebarCollapsed}
-        setIsCollapsed={setSidebarCollapsed}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isHovered={isHovered}
+        setIsHovered={setIsHovered}
       />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader 
-          user={user} 
-          onLogout={logout} 
+
+      <div
+        className={`relative transition-all duration-300 w-full overflow-x-hidden ${
+          // ================== LOGIKA YANG DIPERBARUI ==================
+          // Mengganti kelas margin secara langsung untuk menghindari masalah prioritas CSS
+          isEffectivelyCollapsed ? "lg:ml-20" : "lg:ml-64"
+        }`}
+      >
+        {/* Asumsi Anda memiliki komponen Header yang juga perlu tahu status sidebar */}
+        <DashboardHeader
+          user={user}
+          onLogout={logout}
           onMenuClick={() => setSidebarOpen(true)}
-          isCollapsed={sidebarCollapsed}
+          sidebarCollapsed={isCollapsed}
         />
-        
-        {/* Main content dengan responsive padding */}
-        <main className={`flex-1 overflow-auto pt-[64px] transition-all duration-300 ${
-          // Mobile: no left padding
-          "pl-0 " +
-          // Desktop: adjust padding berdasarkan sidebar state
-          (sidebarCollapsed ? "lg:pl-[80px]" : "lg:pl-[250px]")
-        }`}>
-          <div className="p-3 sm:p-4 lg:p-6">
-            {children}
-          </div>
-        </main>
+        <main className="px-6 pb-6 pt-20">{children}</main>
       </div>
     </div>
-  )
+  );
 }

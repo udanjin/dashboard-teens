@@ -1,18 +1,17 @@
 "use client";
 
-// Corrected: Changed path aliases to relative paths to resolve the module.
 import { useAuth } from "@/context/AuthContext";
 import SportsHome from "@/components/Dashboard/SportsHome";
 import FclAdminHome from "@/components/Dashboard/FclHome";
 import { Spin, Typography, Space } from "antd";
 import FclAttendanceChart from "@/components/Dashboard/FclChart";
+import BirthdayCalendar from "@/components/Dashboard/Calendar";
 
 const { Title } = Typography;
 
 export default function DashboardHome() {
   const { user, loading } = useAuth();
 
-  // Menampilkan loading spinner saat data pengguna sedang diperiksa
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
@@ -21,47 +20,57 @@ export default function DashboardHome() {
     );
   }
 
-  // Fungsi untuk memilih komponen mana yang akan ditampilkan
+  // This function is updated to check an array of roles
   const renderHomeByRole = () => {
-    switch (user.role) {
-      case "sports":
-        return <SportsHome />;
+    // Ensure user.roles is an array before checking
+    const roles = user.roles || [];
 
-      case "fcl":
-        return (
-          <Space direction="vertical" size="large" className="w-full">
-            <FclAdminHome />
-            <FclAttendanceChart />
-          </Space>
-        );
-
-      // 2. Logika baru untuk role 'admin'
-      case "admin":
-        return (
-          <Space direction="vertical" size="large" className="w-full">
-            <div>
-              <Title level={3}>Sports Overview</Title>
-              <SportsHome />
+    // Check for roles in order of priority (admin is highest)
+    if (roles.includes("admin")) {
+      return (
+        <Space direction="vertical" size="large" className="w-full">
+          <div>
+            <Title level={3}>Sports Overview</Title>
+            <SportsHome />
+          </div>
+          <div>
+            <Title level={3}>FCL Overview</Title>
+            <div className="mt-6">
+              <FclAdminHome />
             </div>
-            <div>
-              <Title level={3}>FCL Overview</Title>
-              <div className="mt-6">
-                <FclAdminHome />
-              </div>
-              {/* <FclAttendanceChart /> */}
-            </div>
-          </Space>
-        );
-
-      default:
-        // Tampilan default jika pengguna tidak memiliki role spesifik
-        return <div>Selamat datang, {user.username}!</div>;
+            {/* <FclAttendanceChart /> */}
+          </div>
+        </Space>
+      );
     }
+
+    if (roles.includes("fcl")) {
+      return (
+        <Space direction="vertical" size="large" className="w-full">
+          <FclAdminHome />
+          <FclAttendanceChart />
+        </Space>
+      );
+    }
+
+    if (roles.includes("sports")) {
+      return <SportsHome />;
+    }
+
+    // Default view for users with no specific dashboard role
+    return <div></div>;
   };
 
   return (
     <div className="w-full min-h-[calc(100vh-64px)] p-6">
-      {renderHomeByRole()}
+      <Space direction="vertical" size="large" className="w-full">
+        <Title level={2}>Welcome {user.username}</Title>
+        {/* Kalender ulang tahun ditempatkan di sini, sehingga semua role bisa melihatnya */}
+        <BirthdayCalendar />
+
+        {/* Sisa dashboard dirender di bawah kalender */}
+        {renderHomeByRole()}
+      </Space>
     </div>
   );
 }

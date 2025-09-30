@@ -1,151 +1,131 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Table, Tag, Button, Modal, Select, message, Space, Popconfirm } from "antd";
+import { Table, Tag, Button, message, Space, Popconfirm, Modal, Select, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axiosInstance from "@/lib/axiosInstance";
 import dayjs from "dayjs";
 
+// Tipe data untuk User dan Role
 interface User {
   id: string;
   username: string;
   status: "pending" | "approved" | "rejected";
-  role: string | null;
   createdAt: string;
 }
 
-// Predefined roles that admin can choose from
-const AVAILABLE_ROLES = [
-  { value: "admin", label: "Admin" },
-  { value: "fcl", label: "FCL" },
-  { value: "sports", label: "Sports" },
-  { value: "leader", label: "Leader" },
-];
+interface Role {
+  id: number;
+  name: string;
+}
 
 export default function AdminApprovalPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
 
+  // --- Fetch data ---
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const response = await axiosInstance.get("/users/pending");
       setUsers(response.data);
     } catch (error) {
       message.error("Failed to fetch pending users.");
-      console.error("Fetch users error:", error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const response = await axiosInstance.get("/users/roles");
+      setAvailableRoles(response.data);
+      console.log(response);
+    } catch (error) {
+      message.error("Failed to fetch roles.");
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    setLoading(true);
+    Promise.all([fetchUsers(), fetchRoles()]).finally(() => setLoading(false));
   }, []);
 
+  // --- Handlers ---
   const handleApproveClick = (user: User) => {
     setSelectedUser(user);
-    // Set default role to 'user'
-    setSelectedRole("");
     setIsModalOpen(true);
   };
 
+  const handleModalCancel = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+    setSelectedRoleIds([]);
+  };
+
   const handleApprovalSubmit = async () => {
-    if (!selectedUser || !selectedRole) {
-      message.warning("Please select a role for the user.");
+    if (!selectedUser || selectedRoleIds.length === 0) {
+      message.warning("Please assign at least one role.");
       return;
     }
-
     setLoading(true);
     try {
       await axiosInstance.put(`/users/approve/${selectedUser.id}`, {
-        role: selectedRole,
+        roleIds: selectedRoleIds,
       });
-      
-      message.success(
-        `User ${selectedUser.username} has been approved as ${selectedRole}.`
-      );
-      setIsModalOpen(false);
-      setSelectedUser(null);
-      setSelectedRole("");
-      fetchUsers(); // Reload users data
+      message.success(`User ${selectedUser.username} has been approved.`);
+      handleModalCancel();
+      fetchUsers(); // Refresh list
     } catch (error) {
       message.error("Failed to approve user.");
-      console.log(selectedRole);
-      console.error("Approve user error:", error);
     } finally {
       setLoading(false);
+      setAvailableRoles
     }
   };
-
+  
   const handleRejectUser = async (user: User) => {
     setLoading(true);
     try {
       await axiosInstance.delete(`/users/reject/${user.id}`);
       message.success(`User ${user.username} has been rejected.`);
-      fetchUsers(); // Reload users data
+      fetchUsers();
     } catch (error) {
       message.error("Failed to reject user.");
-      console.error("Reject user error:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // --- Table Columns ---
   const columns: ColumnsType<User> = [
-    {
-      title: "Username",
-      dataIndex: "username",
-      key: "username",
-      sorter: (a, b) => a.username.localeCompare(b.username),
-    },
+    { title: "Username", dataIndex: "username", key: "username" },
     {
       title: "Registration Date",
       dataIndex: "createdAt",
       key: "createdAt",
       render: (date) => dayjs(date).format("DD MMM YYYY, HH:mm"),
-      sorter: (a, b) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag
-          color={
-            status === "pending"
-              ? "orange"
-              : status === "approved"
-              ? "green"
-              : "red"
-          }
-        >
-          {status.toUpperCase()}
-        </Tag>
-      ),
+      render: (status) => <Tag color="orange">{status.toUpperCase()}</Tag>,
     },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
         <Space>
-          <Button
-            type="primary"
-            onClick={() => handleApproveClick(record)}
-            size="small"
-          >
+          <Button type="primary" size="small" onClick={() => handleApproveClick(record)}>
             Approve
           </Button>
           <Popconfirm
-            title="Reject User Registration"
-            description={`Are you sure you want to reject ${record.username}? This cannot be undone.`}
+            title={`Reject ${record.username}?`}
             onConfirm={() => handleRejectUser(record)}
             okText="Yes, Reject"
             cancelText="No"
-            placement="topRight" // Optional: Adjust the pop-up position
           >
             <Button danger size="small">
               Reject
@@ -156,85 +136,46 @@ export default function AdminApprovalPage() {
     },
   ];
 
-  return (
-    <div className="p-6 bg-white min-h-screen">
-      <div className="w-full">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
-          Pending User Registrations
-        </h1>
+  const roleOptions = availableRoles.map(role => ({
+    label: role.name.toUpperCase(), // Capitalize
+    value: role.id,
+  }));
 
-        <div className="bg-white rounded-lg shadow-sm w-full">
+  return (
+    <>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <h1 className="text-2xl font-bold mb-6">Pending User Registrations</h1>
+        <div className="bg-white rounded-lg shadow-md">
           <Table
             columns={columns}
             dataSource={users}
             rowKey="id"
             loading={loading}
             bordered
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} users`,
-            }}
-            locale={{
-              emptyText: "No pending registrations",
-            }}
           />
         </div>
-
-        <Modal
-          title={
-            <div className="text-lg font-semibold text-gray-800">
-              Approve User:{" "}
-              <span className="text-indigo-600">{selectedUser?.username}</span>
-            </div>
-          }
-          open={isModalOpen}
-          onOk={handleApprovalSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setSelectedUser(null);
-            setSelectedRole("");
-          }}
-          confirmLoading={loading}
-          okText="Approve User"
-          cancelText="Cancel"
-          okButtonProps={{
-            className: "bg-indigo-600 hover:bg-indigo-700",
-          }}
-        >
-          <div className="py-4">
-            <p className="mb-4 text-gray-600">
-              Select a role to assign to this user:
-            </p>
-            <Select
-              value={selectedRole}
-              style={{ width: "100%" }}
-              size="large"
-              onChange={(value) => setSelectedRole(value)}
-              options={AVAILABLE_ROLES}
-              placeholder="Choose a role for the user"
-              className="mb-4"
-            />
-            {selectedRole && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>{selectedUser?.username}</strong> will be approved
-                  with the role:{" "}
-                  <span className="font-semibold text-indigo-600">
-                    {
-                      AVAILABLE_ROLES.find(
-                        (role) => role.value === selectedRole
-                      )?.label
-                    }
-                  </span>
-                </p>
-              </div>
-            )}
-          </div>
-        </Modal>
       </div>
-    </div>
+
+      <Modal
+        title={`Approve and Assign Roles for ${selectedUser?.username}`}
+        open={isModalOpen}
+        onOk={handleApprovalSubmit}
+        onCancel={handleModalCancel}
+        confirmLoading={loading}
+        okText="Approve & Assign"
+      >
+        <p className="my-4">Select one or more roles to assign to this user:</p>
+        <Select
+          mode="multiple"
+          allowClear
+          style={{ width: '100%' }}
+          placeholder="Please select roles"
+          onChange={(values) => setSelectedRoleIds(values)}
+          options={roleOptions}
+          loading={availableRoles.length === 0}
+          value={selectedRoleIds}
+        />
+      </Modal>
+    </>
   );
 }
