@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Dropdown,
   Avatar,
@@ -20,78 +20,60 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
-import axiosInstance from "@/lib/axiosInstance";
-import { UserInfo } from "@/types"; // Impor dari file types terpusat
+import { fclService } from "@/services";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { PERMISSIONS } from "@/types";
+import type { UserInfo, DeletionRequest } from "@/types";
 
-// Interface props diperbarui untuk menerima 'user' dan 'onLogout'
 interface DashboardHeaderProps {
   user: UserInfo | null;
   onLogout: () => void;
   onMenuClick: () => void;
-  sidebarCollapsed: boolean;
-}
-
-interface DeletionRequest {
-  id: number;
-  name: string;
-  deletionReason: string;
 }
 
 export default function DashboardHeader({
   user,
   onLogout,
   onMenuClick,
-  sidebarCollapsed,
 }: DashboardHeaderProps) {
   const [requests, setRequests] = useState<DeletionRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] =
-    useState<DeletionRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<DeletionRequest | null>(null);
+  const { hasPermission } = useRoleAccess();
+  const canManageDeletions = hasPermission(PERMISSIONS.FCL_MANAGE_DELETIONS);
 
-  const hasAccess = (requiredRoles: string[]): boolean => {
-    if (!user || !user.roles) return false;
-    return user.roles.some((role) => requiredRoles.includes(role));
-  };
-
-  const fetchDeleteReq = async () => {
-    if (!hasAccess(["admin", "fcl"])) return;
+  const fetchDeleteRequests = useCallback(async () => {
+    if (!canManageDeletions) return;
     setLoading(true);
     try {
-      const res = await axiosInstance.get("/fcl/deletion-request");
+      const res = await fclService.getDeletionRequests();
       setRequests(res.data);
-    } catch (err) {
-      console.error("Failed to fetch deletion requests", err);
+    } catch {
+      // silently fail for notifications
     } finally {
       setLoading(false);
     }
-  };
+  }, [canManageDeletions]);
 
   useEffect(() => {
-    fetchDeleteReq();
-  }, [user]);
-
-  const handleNotificationClick = (request: DeletionRequest) => {
-    setSelectedRequest(request);
-    setIsConfirmModalOpen(true);
-  };
+    fetchDeleteRequests();
+  }, [fetchDeleteRequests]);
 
   const handleApproval = async (action: "approve" | "reject") => {
     if (!selectedRequest) return;
     setLoading(true);
     try {
       if (action === "approve") {
-        await axiosInstance.delete(
-          `/fcl/approve-deletion/${selectedRequest.id}`
-        );
+        await fclService.approveDeletion(selectedRequest.id);
         message.success(`Deletion for ${selectedRequest.name} approved.`);
       } else {
-        await axiosInstance.put(`/fcl/reject-deletion/${selectedRequest.id}`);
+        await fclService.rejectDeletion(selectedRequest.id);
         message.info(`Deletion for ${selectedRequest.name} rejected.`);
       }
       setIsConfirmModalOpen(false);
-      fetchDeleteReq();
-    } catch (err) {
+      fetchDeleteRequests();
+    } catch {
       message.error(`Failed to ${action} request`);
     } finally {
       setLoading(false);
@@ -100,7 +82,7 @@ export default function DashboardHeader({
 
   const userMenuItems: MenuProps["items"] = [
     {
-      key: "1",
+      key: "user-info",
       label: (
         <div className="px-4 py-2">
           <p className="font-semibold">{user?.name}</p>
@@ -109,8 +91,8 @@ export default function DashboardHeader({
       ),
     },
     { type: "divider" },
-    { key: "2", label: "Profile", icon: <UserOutlined /> },
-    { key: "3", label: "Logout", icon: <LogoutOutlined />, onClick: onLogout },
+    { key: "profile", label: "Profile", icon: <UserOutlined /> },
+    { key: "logout", label: "Logout", icon: <LogoutOutlined />, onClick: onLogout },
   ];
 
   const notificationDropdown = (
@@ -125,7 +107,10 @@ export default function DashboardHeader({
         renderItem={(item) => (
           <List.Item
             className="hover:bg-gray-50 cursor-pointer"
-            onClick={() => handleNotificationClick(item)}
+            onClick={() => {
+              setSelectedRequest(item);
+              setIsConfirmModalOpen(true);
+            }}
           >
             <div className="w-full px-4 py-2">
               <p className="font-semibold">{item.name}</p>
@@ -150,7 +135,7 @@ export default function DashboardHeader({
             className="lg:hidden"
           />
           <div className="flex items-center gap-6 ml-auto">
-            {hasAccess(["admin", "fcl"]) && (
+            {canManageDeletions && (
               <Dropdown
                 dropdownRender={() => notificationDropdown}
                 trigger={["click"]}
@@ -175,6 +160,7 @@ export default function DashboardHeader({
           </div>
         </div>
       </header>
+
       <Modal
         title="Confirm Deletion Request"
         open={isConfirmModalOpen}
@@ -206,7 +192,7 @@ export default function DashboardHeader({
               <strong>{selectedRequest.name}</strong>?
             </p>
             <p className="mt-2 text-gray-500">
-              Reason provided: "{selectedRequest.deletionReason}"
+              Reason provided: &ldquo;{selectedRequest.deletionReason}&rdquo;
             </p>
           </div>
         )}
@@ -214,4 +200,3 @@ export default function DashboardHeader({
     </>
   );
 }
-

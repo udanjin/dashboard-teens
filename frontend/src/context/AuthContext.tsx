@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
-import api from "@/lib/axiosInstance";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { setToken, getToken, removeToken, decodeToken } from "@/lib/authUtils";
-import { UserInfo } from "@/types";
+import { authService } from "@/services/auth.service";
+import { saveUser, getStoredUser, clearStoredUser } from "@/lib/authUtils";
+import type { UserInfo } from "@/types";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -22,76 +22,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = getToken();
-    if (token) {
-      const decodedUser = decodeToken(token);
-      if (decodedUser && decodedUser.exp * 1000 > Date.now()) {
-        // FIX 1: Make sure to include the 'name' property here
-        setUser({
-          username: decodedUser.username,
-          name: decodedUser.name || decodedUser.username,
-          roles: decodedUser.roles,
-        });
-        setIsAuthenticated(true);
-        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      } else {
-        logout();
-      }
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Cookie might already be cleared
     }
-    setLoading(false);
+    clearStoredUser();
+    setIsAuthenticated(false);
+    setUser(null);
+    router.push("/login");
+  }, [router]);
+
+  useEffect(() => {
+    const cachedUser = getStoredUser();
+    if (cachedUser) {
+      setUser(cachedUser);
+      setIsAuthenticated(true);
+    }
+
+    authService
+      .getMe()
+      .then(({ data }) => {
+        setUser(data);
+        setIsAuthenticated(true);
+        saveUser(data);
+      })
+      .catch(() => {
+        clearStoredUser();
+        setIsAuthenticated(false);
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const login = async (username: string, password: string) => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const response = await api.post("/users/login", {
-        username,
-        password,
-      });
-
-      const { token } = response.data;
-      setToken(token);
-
-      const decodedUser = decodeToken(token);
-      if (decodedUser) {
-        const currentUser: UserInfo = {
-          // FIX 2: Access properties from the 'decodedUser' object, not the function
-          username: decodedUser.username,
-          name: decodedUser.name || decodedUser.username,
-          roles: decodedUser.roles || [],
-          grade: decodedUser.grade,
-          gender: decodedUser.gender,
-        };
-
-        // FIX 3: You forgot to call setUser with the new user object
-        setUser(currentUser);
-        setIsAuthenticated(true);
-        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-        return true;
-      }
-      return false;
+      const { data } = await authService.login(username, password);
+      setUser(data.user);
+      setIsAuthenticated(true);
+      saveUser(data.user);
+      return true;
     } catch (error) {
       console.error("Login error:", error);
-      logout();
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    removeToken();
-    delete api.defaults.headers.common["Authorization"];
-    setIsAuthenticated(false);
-    setUser(null);
-    router.push("/login");
-  };
-
   return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, user, login, logout, loading }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

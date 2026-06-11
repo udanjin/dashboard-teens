@@ -1,623 +1,173 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  Button,
-  Form,
-  Input,
-  Select,
-  Table,
-  message,
-  Card,
-  Typography,
-  InputNumber,
-  Modal,
-  Checkbox,
-  DatePicker,
-  Popconfirm,
-  Space,
-} from "antd";
-import {
-  PlusOutlined,
-  CloseOutlined,
-  UserOutlined,
-  SearchOutlined,
-  DeleteOutlined,
-  EditOutlined,
-} from "@ant-design/icons";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Button, DatePicker, Form, Input, Typography, message } from "antd";
+import { PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import axiosInstance from "@/lib/axiosInstance";
-import { useAuth } from "@/context/AuthContext";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/id";
+
+import { useAuth } from "@/context/AuthContext";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useModal } from "@/stores/modalStore";
+import { fclService, attendanceService } from "@/services";
+import { useTableData } from "@/components/Common/DataTable";
+import DataTable from "@/components/Common/DataTable";
+import GlobalFormModal from "@/components/Common/GlobalFormModal";
+import AddMemberForm from "@/components/FCL/AddMemberForm";
+import AttendanceModal from "@/components/FCL/AttendanceModal";
+import DeleteMemberModal from "@/components/FCL/DeleteMemberModal";
+import { PERMISSIONS } from "@/types";
+import type { Member, AddMemberFormValues } from "@/types";
+
 dayjs.locale("id");
 
 const { Title, Text } = Typography;
-const { Option } = Select;
 
-// --- Interface Definitions ---
-interface Member {
-  presentCount: number;
-  absentCount: number;
-  id: number;
-  name: string;
-  dob?: string | null;
-}
-
-interface AttendanceRecord {
-  memberId: number;
-  name: string;
-  [date: string]: any;
-}
-
-interface LeaderUserInfo {
-  username?: string;
-  grade?: number;
-  gender?: string;
-  roles?: string;
-}
-
-// --- Attendance Button Component ---
-const AttendanceButton = ({
-  status,
-  onClick,
-}: {
-  status: number | null;
-  onClick: () => void;
-}) => {
-  let text = "Unmarked";
-  let type: "default" | "primary" | "dashed" = "default";
-
-  if (status === 0) {
-    text = "Present";
-    type = "primary";
-  } else if (status === 1) {
-    text = "Absent";
-    type = "dashed";
-  }
-
-  return (
-    <Button onClick={onClick} type={type} danger={status === 1} size="small">
-      {text}
-    </Button>
-  );
-};
-
-// --- Main FCL Page Component ---
 export default function FclPage() {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
-  const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const [searchText, setSearchQuery] = useState("");
-  const [form] = Form.useForm();
   const { user } = useAuth();
-  const leader = user as LeaderUserInfo | null;
-  const isAdmin = leader?.roles?.includes("admin");
-  const [attendanceDate, setAttendanceDate] = useState(dayjs());
-  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
-  const [deleteReason, setDeleteReason] = useState("");
+  const { hasPermission, isAdmin } = useRoleAccess();
+  const canViewFcl = hasPermission(PERMISSIONS.FCL_VIEW);
+  const canManageMembers = hasPermission(PERMISSIONS.FCL_MANAGE_MEMBERS);
+  const canTakeAttendance = hasPermission(PERMISSIONS.ATTENDANCE_MANAGE);
+  const addMemberModal = useModal("fcl-add-member");
+  const attendanceModal = useModal("fcl-attendance");
+  const deleteModal = useModal("fcl-delete");
+
+  const [form] = Form.useForm();
+  const [searchText, setSearchText] = useState("");
   const [statsDate, setStatsDate] = useState(dayjs());
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
 
-  const fetchMembers = async (date: Dayjs) => {
-    setLoading(true);
-    try {
-      const membersRes = await axiosInstance.get("/fcl/my-members");
-      const statsRes = await axiosInstance.get(
-        `/attendance/single-attendance?month=${
-          date.month() + 1
-        }&year=${date.year()}`
-      );
-      const memberData = membersRes.data;
-      const statsData = statsRes.data.memberStats;
-      const mergedData = memberData.map((member: Member) => {
-        const stat = statsData.find((s: any) => s.memberId === member.id);
-        return {
-          ...member,
-          presentCount: stat ? stat.presentCount : 0,
-          absentCount: stat ? stat.absentCount : 0,
-        };
-      });
-      setMembers(mergedData);
-      setFilteredMembers(mergedData);
-    } catch (error) {
-      message.error("Failed to fetch members.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMembers(statsDate);
+  const fetchMembers = useCallback(async (): Promise<Member[]> => {
+    const [membersRes, statsRes] = await Promise.all([
+      fclService.getMyMembers(),
+      attendanceService.getSingleAttendance(statsDate.month() + 1, statsDate.year()),
+    ]);
+    const stats = statsRes.data.memberStats;
+    return membersRes.data.map((m) => {
+      const s = stats.find((st) => st.memberId === m.id);
+      return { ...m, presentCount: s?.presentCount ?? 0, absentCount: s?.absentCount ?? 0 };
+    });
   }, [statsDate]);
 
+  const { data: members, loading, refresh } = useTableData(fetchMembers);
+
+  const filteredMembers = useMemo(
+    () => members.filter((m) => m.name.toLowerCase().includes(searchText.toLowerCase())),
+    [members, searchText]
+  );
+
   useEffect(() => {
-    if (members) {
-      const filtered = members.filter((member) =>
-        member.name.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredMembers(filtered);
+    if (addMemberModal.isOpen && user) {
+      form.setFieldsValue({ grade: user.grade, gender: user.gender, names: [{ name: "", dob: null }] });
     }
-  }, [searchText, members]);
+  }, [addMemberModal.isOpen, user, form]);
 
-  const handleAddMemberFinish = async (values: {
-    names: { name: string; dob: Dayjs }[];
-  }) => {
-    setLoading(true);
-
-    if (!leader?.grade || !leader?.gender) {
-      message.error(
-        "Your leader profile is incomplete. Cannot add new members."
-      );
-      setLoading(false);
+  const handleAddMember = async (values: AddMemberFormValues) => {
+    if (!user?.grade || !user?.gender) {
+      message.error("Your leader profile is incomplete. Cannot add new members.");
       return;
     }
-
-    const membersData = values.names.map((item) => ({
-      name: item.name,
-      dob: item.dob ? item.dob.format("YYYY-MM-DD") : null,
-      grade: leader.grade,
-      gender: leader.gender,
-    }));
-
+    addMemberModal.setLoading(true);
     try {
-      await axiosInstance.post("/fcl/members", { membersData });
+      await fclService.addMembers(
+        values.names.map((item) => ({
+          name: item.name,
+          dob: item.dob ? item.dob.format("YYYY-MM-DD") : null,
+          grade: user.grade!,
+          gender: user.gender!,
+        }))
+      );
       message.success("Members added successfully!");
-      setIsAddMemberModalOpen(false);
-      fetchMembers(statsDate);
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error
-      message.error(errorMessage);
+      addMemberModal.close();
+      form.resetFields();
+      refresh();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      message.error(err.response?.data?.error ?? "Failed to add members.");
     } finally {
-      setLoading(false);
+      addMemberModal.setLoading(false);
     }
   };
 
-  // Fungsi untuk menampilkan modal
-  const showAddMemberModal = () => {
-    setIsAddMemberModalOpen(true);
-  };
+  const columns: ColumnsType<Member> = [
+    { title: "Name", dataIndex: "name", key: "name", sorter: (a, b) => a.name.localeCompare(b.name) },
+    { title: "Date of Birth", dataIndex: "dob", key: "dob", sorter: (a, b) => dayjs(a.dob).diff(dayjs(b.dob)) },
+    { title: "Present", dataIndex: "presentCount", key: "presentCount", sorter: (a, b) => (a.presentCount ?? 0) - (b.presentCount ?? 0) },
+    { title: "Absent", dataIndex: "absentCount", key: "absentCount", sorter: (a, b) => (a.absentCount ?? 0) - (b.absentCount ?? 0) },
+    ...(canManageMembers
+      ? [
+          {
+            title: "Action" as const, key: "action", fixed: "right" as const, align: "center" as const, width: 120,
+            render: (_: unknown, record: Member) => (
+              <Button danger icon={<DeleteOutlined />} onClick={() => {
+                setMemberToDelete(record);
+                deleteModal.open();
+              }} />
+            ),
+          },
+        ]
+      : []),
+  ];
 
-  // Fungsi untuk menutup modal dan membersihkan form
-  const handleCancelAddMember = () => {
-    setIsAddMemberModalOpen(false);
-    form.resetFields();
-  };
-
-  // Efek untuk mengisi form secara dinamis saat modal dibuka dan data leader tersedia
-  useEffect(() => {
-    if (isAddMemberModalOpen && leader) {
-      form.setFieldsValue({
-        grade: leader.grade,
-        gender: leader.gender,
-        names: [{ name: "", dob: null }],
-      });
-    }
-  }, [isAddMemberModalOpen, leader, form]);
-
-  const getSundaysOfMonth = (date: Dayjs) => {
-    const sundays = [];
-    const start = date.startOf("month");
-    let currentSunday = start.day(7);
-    if (currentSunday.date() > 7) {
-      currentSunday = currentSunday.subtract(7, "day");
-    }
-    while (currentSunday.month() === start.month()) {
-      sundays.push(currentSunday);
-      currentSunday = currentSunday.add(7, "day");
-    }
-    return sundays;
-  };
-
-  const fetchAttendanceSheet = async (date: Dayjs) => {
-    setLoading(true);
-    try {
-      const membersResponse = await axiosInstance.get<Member[]>(
-        "/fcl/my-members"
-      );
-      const membersList = membersResponse.data;
-      if (membersList.length === 0) {
-        setAttendanceData([]);
-        return;
-      }
-      const sundays = getSundaysOfMonth(date);
-
-      const attendancePromises = sundays.map((sunday) =>
-        axiosInstance.get(
-          `/attendance/sheet?date=${sunday.format("YYYY-MM-DD")}`
-        )
-      );
-      const responses = await Promise.all(attendancePromises);
-      const attendanceByDate = responses.map((res) => res.data);
-
-      const transformedData = membersList.map((member) => {
-        const record: AttendanceRecord = {
-          memberId: member.id,
-          name: member.name,
-        };
-        sundays.forEach((sunday, index) => {
-          const dateKey = sunday.format("YYYY-MM-DD");
-          const dailyAttendance = attendanceByDate[index];
-          const memberAttendance = dailyAttendance.find(
-            (att: any) => att.memberId === member.id
-          );
-          record[dateKey] = memberAttendance ? memberAttendance.status : null;
-        });
-        return record;
-      });
-
-      setAttendanceData(transformedData);
-    } catch (error) {
-      message.error("Failed to fetch attendance sheet.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAttendanceClick = () => {
-    const today = dayjs();
-    setAttendanceDate(today);
-    fetchAttendanceSheet(today);
-    setIsAttendanceModalOpen(true);
-  };
-
-  const handleAttendanceChange = (memberId: number, dateKey: string) => {
-    setAttendanceData((prevData) =>
-      prevData.map((record) => {
-        if (record.memberId === memberId) {
-          const currentStatus = record[dateKey];
-          let newStatus: number | null = 0;
-          if (currentStatus === 0) newStatus = 1;
-          if (currentStatus === 1) newStatus = null;
-          return { ...record, [dateKey]: newStatus };
-        }
-        return record;
-      })
+  if (!canViewFcl) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <Text type="secondary">You don&apos;t have permission to access this page.</Text>
+      </div>
     );
-  };
-
-  const handleAttendanceSubmit = async () => {
-    setLoading(true);
-    try {
-      const attendancesToSubmit = [];
-      for (const record of attendanceData) {
-        for (const key in record) {
-          if (key.startsWith("20")) {
-            attendancesToSubmit.push({
-              memberId: record.memberId,
-              date: key,
-              status: record[key],
-            });
-          }
-        }
-      }
-
-      const groupedByDate = attendancesToSubmit.reduce((acc, curr) => {
-        acc[curr.date] = acc[curr.date] || [];
-        acc[curr.date].push({ memberId: curr.memberId, status: curr.status });
-        return acc;
-      }, {} as any);
-
-      const submissionPromises = [];
-      for (const date in groupedByDate) {
-        const payload = {
-          date: date,
-          attendances: groupedByDate[date],
-        };
-        submissionPromises.push(axiosInstance.post("/attendance", payload));
-      }
-
-      await Promise.all(submissionPromises);
-
-      message.success("Attendance submitted successfully!");
-      setIsAttendanceModalOpen(false);
-    } catch (error) {
-      message.error("Failed to submit attendance.");
-    } finally {
-      setLoading(false);
-      fetchMembers(statsDate);
-    }
-  };
-
-  const showDeleteModal = (member: Member) => {
-    setMemberToDelete(member);
-    setIsDeleteModalOpen(true);
-    setDeleteReason("");
-  };
-
-  const handleDelete = async () => {
-    if (!memberToDelete || !deleteReason.trim()) {
-      message.error("Reason for deletion is required.");
-      return;
-    }
-    try {
-      await axiosInstance.put(`/fcl/request-delete/${memberToDelete.id}`, {
-        reason: deleteReason,
-      });
-      message.success("Deletion request submitted for approval.");
-      setIsDeleteModalOpen(false);
-      setMemberToDelete(null);
-      fetchMembers(statsDate);
-    } catch (err) {
-      message.error("Failed to submit deletion request.");
-    }
-  };
-
-  const memberColumns: ColumnsType<Member> = [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: "Date of Birth",
-      dataIndex: "dob",
-      key: "dob",
-      sorter: (a, b) => dayjs(a.dob).diff(dayjs(b.dob)),
-    },
-    {
-      title: "Present",
-      dataIndex: "presentCount",
-      key: "presentCount",
-      sorter: (a, b) => (a.presentCount || 0) - (b.presentCount || 0),
-    },
-    {
-      title: "Absent",
-      dataIndex: "absentCount",
-      key: "absentCount",
-      sorter: (a, b) => (a.absentCount || 0) - (b.absentCount || 0),
-    },
-    {
-      title: "Action",
-      key: "action",
-      fixed: "right",
-      align: "center",
-      width: 120,
-      render: (_, record) => (
-        <div className="flex justify-center">
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => showDeleteModal(record)}
-          />
-        </div>
-      ),
-    },
-  ];
-
-  const sundays = getSundaysOfMonth(attendanceDate);
-
-  const attendanceColumns: ColumnsType<AttendanceRecord> = [
-    {
-      title: "Nama",
-      dataIndex: "name",
-      key: "name",
-      fixed: "left",
-      width: 150,
-    },
-    ...sundays.map((sunday) => {
-      const dateKey = sunday.format("YYYY-MM-DD");
-      return {
-        title: sunday.format("D MMM"),
-        key: dateKey,
-        dataIndex: dateKey,
-        render: (_: any, record: AttendanceRecord) => (
-          <AttendanceButton
-            status={record[dateKey]}
-            onClick={() => handleAttendanceChange(record.memberId, dateKey)}
-          />
-        ),
-        align: "center" as const,
-      };
-    }),
-  ];
+  }
 
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
         <div>
-          <Title level={2} className="mb-0">
-            FCL Management
-          </Title>
-          <div className="flex flex-col justify-between">
-            <div>
-              <Text strong>Name: {leader?.username}</Text>
+          <Title level={2} className="mb-0">FCL Management</Title>
+          <Text strong>Name: {user?.username}</Text>
+          {!isAdmin && (
+            <div className="flex flex-col">
+              <Text strong>Grade: {user?.grade}</Text>
+              <Text strong>Gender: {user?.gender}</Text>
             </div>
-            {!leader?.roles?.includes("admin") && (
-              <>
-                <div>
-                  <Text strong>Grade: {leader?.grade || leader?.roles}</Text>
-                </div>
-                <div>
-                  <Text strong>Gender: {leader?.gender}</Text>
-                </div>
-              </>
-            )}
-          </div>
+          )}
         </div>
-
         <div className="flex items-center gap-2">
-          <DatePicker
-            picker="month"
-            value={statsDate}
-            onChange={(date) => date && setStatsDate(date)}
-            className="w-full"
-          />
-          <Input
-            placeholder="Search Member"
-            prefix={<SearchOutlined />}
-            value={searchText}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <Button onClick={handleAttendanceClick} disabled={isAdmin}>Take Attendance</Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={showAddMemberModal}
-            disabled={isAdmin}
-          >
-            Add Member
-          </Button>
+          <DatePicker picker="month" value={statsDate} onChange={(d) => d && setStatsDate(d)} className="w-full" />
+          <Input placeholder="Search Member" prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+          {canTakeAttendance && (
+            <Button onClick={attendanceModal.open}>Take Attendance</Button>
+          )}
+          {canManageMembers && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={addMemberModal.open}>Add Member</Button>
+          )}
         </div>
       </div>
 
-      <Table
-        columns={memberColumns}
-        dataSource={filteredMembers}
-        loading={loading}
-        rowKey="id"
-        bordered
+      <DataTable columns={columns} dataSource={filteredMembers} loading={loading} rowKey="id" />
+
+      <GlobalFormModal
+        title="Add New Members"
+        open={addMemberModal.isOpen}
+        onCancel={() => { addMemberModal.close(); form.resetFields(); }}
+        form={form}
+        confirmLoading={addMemberModal.loading}
+      >
+        <AddMemberForm form={form} onFinish={handleAddMember} loading={addMemberModal.loading} />
+      </GlobalFormModal>
+
+      <AttendanceModal
+        open={attendanceModal.isOpen}
+        onClose={attendanceModal.close}
+        onSubmitted={refresh}
       />
 
-      <Modal
-        title="Add New Members"
-        open={isAddMemberModalOpen}
-        onCancel={handleCancelAddMember}
-        footer={null}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical" onFinish={handleAddMemberFinish}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <Form.Item name="grade" label="Grade">
-              <InputNumber className="w-full" disabled />
-            </Form.Item>
-            <Form.Item name="gender" label="Gender">
-              <Input className="w-full" disabled />
-            </Form.Item>
-          </div>
-
-          <Form.Item label="Member Details">
-            <Form.List name="names">
-              {(fields, { add, remove }) => (
-                <>
-                  <div className="space-y-3">
-                    {fields.map(({ key, name, ...restField }) => (
-                      <div key={key} className="flex items-start gap-2">
-                        <Form.Item
-                          {...restField}
-                          name={[name, "name"]}
-                          rules={[
-                            {
-                              required: true,
-                              message: "Please input member's name!",
-                            },
-                          ]}
-                          className="flex-1 mb-0"
-                        >
-                          <Input placeholder="Member's Name" />
-                        </Form.Item>
-                        <Form.Item
-                          {...restField}
-                          name={[name, "dob"]}
-                          rules={[
-                            {
-                              required: true,
-                              message: "Please select date of birth!",
-                            },
-                          ]}
-                          className="flex-1 mb-0"
-                        >
-                          <DatePicker
-                            placeholder="Date of Birth"
-                            className="w-full"
-                          />
-                        </Form.Item>
-                        {fields.length > 1 && (
-                          <Button
-                            type="text"
-                            danger
-                            icon={<CloseOutlined />}
-                            onClick={() => remove(name)}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    type="dashed"
-                    onClick={() => add()}
-                    block
-                    icon={<PlusOutlined />}
-                    className="mt-4"
-                  >
-                    Add Another Member
-                  </Button>
-                </>
-              )}
-            </Form.List>
-          </Form.Item>
-          <Form.Item className="text-right mb-0">
-            <Button onClick={handleCancelAddMember} className="mr-2">
-              Cancel
-            </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Submit
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title="Take Attendance"
-        open={isAttendanceModalOpen}
-        onCancel={() => setIsAttendanceModalOpen(false)}
-        onOk={handleAttendanceSubmit}
-        width={1000}
-        confirmLoading={loading}
-      >
-        <div className="flex items-center gap-4 mb-4">
-          <Text>Month:</Text>
-          <DatePicker
-            picker="month"
-            value={attendanceDate}
-            onChange={(date) => {
-              if (date) {
-                setAttendanceDate(date);
-                fetchAttendanceSheet(date);
-              }
-            }}
-          />
-        </div>
-        <Table
-          columns={attendanceColumns}
-          dataSource={attendanceData}
-          rowKey="memberId"
-          bordered
-          pagination={false}
-          scroll={{ x: "max-content" }}
-          loading={loading}
-        />
-      </Modal>
-      <Modal
-        title={
-          memberToDelete
-            ? `Request to Delete ${memberToDelete.name}`
-            : "Request to Delete Member"
-        }
-        open={isDeleteModalOpen}
-        onOk={handleDelete}
-        onCancel={() => setIsDeleteModalOpen(false)}
-        confirmLoading={loading}
-        okText="Submit Request"
-        okButtonProps={{ disabled: !deleteReason.trim() }}
-      >
-        <p>
-          Are you sure you want to request the deletion of this member? Please
-          provide a reason below.
-        </p>
-        <Input.TextArea
-          rows={4}
-          value={deleteReason}
-          onChange={(e) => setDeleteReason(e.target.value)}
-          placeholder="Reason for deletion (required)"
-          className="mt-4"
-        />
-      </Modal>
+      <DeleteMemberModal
+        member={memberToDelete}
+        open={deleteModal.isOpen}
+        onClose={() => { deleteModal.close(); setMemberToDelete(null); }}
+        onDeleted={refresh}
+      />
     </div>
   );
 }

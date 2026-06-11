@@ -3,62 +3,44 @@
 import React, { useState, useEffect } from "react";
 import { Calendar, Badge, Card, Typography, message, Spin, Tooltip } from "antd";
 import type { Dayjs } from "dayjs";
-import axiosInstance from "@/lib/axiosInstance";
+import { fclService } from "@/services";
 import dayjs from "dayjs";
+import type { Birthday } from "@/types";
 
 const { Title } = Typography;
 
-// Interface untuk mendefinisikan struktur data ulang tahun dari API
-interface Birthday {
-  date: string;
-  name: string;
-  type: "User" | "Member";
-}
-
-const BirthdayCalendar: React.FC = () => {
+export default function BirthdayCalendar() {
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBirthdays = async () => {
+    const fetch = async () => {
       setLoading(true);
       try {
-        // Memanggil API yang sudah kita buat
-        const response = await axiosInstance.get<Birthday[]>("fcl/birthdays");
-        setBirthdays(response.data);
-      } catch (error) {
+        const res = await fclService.getBirthdays();
+        setBirthdays(res.data);
+      } catch {
         message.error("Failed to fetch birthday data.");
-        console.error("Error fetching birthdays:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchBirthdays();
+    fetch();
   }, []);
 
-  // Fungsi untuk mendapatkan data ulang tahun pada tanggal tertentu
-  const getListData = (value: Dayjs): Birthday[] => {
-    // Filter data ulang tahun berdasarkan bulan dan tanggal, mengabaikan tahun
-    // Ini memastikan ulang tahun muncul setiap tahun
-    const listData = birthdays.filter((item) => {
-      const itemDate = dayjs(item.date);
-      return (
-        itemDate.month() === value.month() && itemDate.date() === value.date()
-      );
+  const getListData = (value: Dayjs): Birthday[] =>
+    birthdays.filter((item) => {
+      const d = dayjs(item.date);
+      return d.month() === value.month() && d.date() === value.date();
     });
-    return listData;
-  };
 
-  // Fungsi untuk merender tampilan sel di kalender
   const dateCellRender = (value: Dayjs) => {
-    const listData = getListData(value);
-    if (listData.length === 0) return null;
-
+    const list = getListData(value);
+    if (!list.length) return null;
     return (
-      <ul className="events" style={{ margin: 0, padding: 0, listStyle: "none" }}>
-        {listData.map((item, index) => (
-          <li key={index}>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        {list.map((item, i) => (
+          <li key={i}>
             <Tooltip title={`${item.name} (${item.type})`}>
               <Badge status="success" text={item.name} />
             </Tooltip>
@@ -70,18 +52,12 @@ const BirthdayCalendar: React.FC = () => {
 
   return (
     <Card bordered={false}>
-      <Title level={3} className="mb-4">
-        Birthday Calendar
-      </Title>
+      <Title level={3} className="mb-4">Birthday Calendar</Title>
       {loading ? (
-        <div className="flex justify-center items-center h-[300px]">
-          <Spin size="large" />
-        </div>
+        <div className="flex justify-center items-center h-[300px]"><Spin size="large" /></div>
       ) : (
         <Calendar dateCellRender={dateCellRender} />
       )}
     </Card>
   );
-};
-
-export default BirthdayCalendar;
+}

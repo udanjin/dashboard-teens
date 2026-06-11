@@ -1,33 +1,28 @@
-// lib/axiosInstance.ts
 import axios from "axios";
+import { clearStoredUser } from "./authUtils";
 
-// Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  }, // Your backend API URL
+  headers: { "Content-Type": "application/json" },
 });
 
-// --- Request Interceptor ---
-// This runs BEFORE each request is sent
-axiosInstance.interceptors.request.use(
-  (config) => {
-    // Check if we are on the client-side before accessing localStorage
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("authToken");
-      if (token) {
-        // If the token exists, add it to the Authorization header
-        config.headers["Authorization"] = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
+const PUBLIC_PATHS = ["/login", "/register"];
+
+function isPublicRoute(): boolean {
+  const path = window.location.pathname;
+  return path === "/" || PUBLIC_PATHS.some((p) => path.startsWith(p));
+}
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
   (error) => {
-    // Do something with request error
+    if (error.response?.status === 401 && typeof window !== "undefined" && !isPublicRoute()) {
+      clearStoredUser();
+      window.location.href = "/login";
+    }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

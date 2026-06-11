@@ -2,20 +2,20 @@ import { Controller, Get, Middleware, Post } from "@overnightjs/core";
 import { Response } from "express";
 import User from "../models/User";
 import Member from "../models/Member";
-import { authMiddleware, AuthenticatedRequest } from "../middleware/auth";
 import Attendance from "../models/Attendance";
+import { authMiddleware } from "../middleware/auth";
+import { requirePermission } from "../middleware/roleAuth";
+import { PERMISSIONS } from "../types";
+import type { AuthenticatedRequest } from "../types";
 import { Op, Sequelize } from "sequelize";
 import sequelize from "../config/db";
 import dayjs from "dayjs";
-import { error } from "console";
+
 @Controller("api/attendance")
 export class AttendanceController {
   @Get("sheet")
-  @Middleware(authMiddleware)
-  private async getAttendanceSheet(
-    req: AuthenticatedRequest,
-    res: Response
-  ): Promise<any> {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  private async getAttendanceSheet(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { date } = req.query;
 
@@ -38,29 +38,24 @@ export class AttendanceController {
       });
 
       const attendanceSheet = members.map((member: Member) => {
-        const attendanceRecord = existingAttendances.find(
-          (a) => a.memberId === member.id
-        );
+        const record = existingAttendances.find((a) => a.memberId === member.id);
         return {
           memberId: member.id,
           name: member.name,
-          status: attendanceRecord ? attendanceRecord.status : null,
+          status: record ? record.status : null,
         };
       });
 
       res.json(attendanceSheet);
     } catch (err) {
-      console.error(err);
+      console.error("Attendance sheet error:", err);
       res.status(500).json({ error: "Failed to fetch attendance sheet" });
     }
   }
 
   @Post("")
-  @Middleware(authMiddleware)
-  private async submitAttendance(
-    req: AuthenticatedRequest,
-    res: Response
-  ): Promise<any> {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_MANAGE)])
+  private async submitAttendance(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { date, attendances } = req.body;
 
@@ -71,7 +66,6 @@ export class AttendanceController {
     const transaction = await sequelize.transaction();
 
     try {
-      // 1. Pisahkan data yang akan dihapus dan yang akan di-upsert
       const toDelete = attendances
         .filter((att: any) => att.status === null)
         .map((att: any) => att.memberId);
@@ -85,45 +79,39 @@ export class AttendanceController {
           status: att.status,
         }));
 
-      // 2. Hapus data yang statusnya diubah menjadi null (unmarked)
       if (toDelete.length > 0) {
         await Attendance.destroy({
-          where: {
-            leaderId,
-            date,
-            memberId: { [Op.in]: toDelete },
-          },
+          where: { leaderId, date, memberId: { [Op.in]: toDelete } },
           transaction,
         });
       }
 
-      // 3. Lakukan upsert untuk data yang statusnya present (0) atau absent (1)
       if (toUpsert.length > 0) {
         await Attendance.bulkCreate(toUpsert, {
-          updateOnDuplicate: ["status"], // Perbarui status jika data sudah ada
+          updateOnDuplicate: ["status"],
           transaction,
         });
       }
 
       await transaction.commit();
-      res.status(200).json({ message: "Attendance submitted successfully" });
+      res.json({ message: "Attendance submitted successfully" });
     } catch (err) {
       await transaction.rollback();
-      console.error(err);
+      console.error("Submit attendance error:", err);
       res.status(500).json({ error: "Failed to submit attendance" });
     }
   }
 
   @Get("single-attendance")
-  @Middleware(authMiddleware)
-  private async getAllAttendance(req: AuthenticatedRequest, res: Response) {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  private async getAllAttendance(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { month, year } = req.query;
+
     if (!leaderId || !month || !year) {
-      return res
-        .status(400)
-        .json({ error: "Leader ID, month and year are required" });
+      return res.status(400).json({ error: "Leader ID, month and year are required" });
     }
+
     try {
       const startDate = dayjs(`${year}-${month}-01`).startOf("month");
       const endDate = startDate.endOf("month");
@@ -131,12 +119,14 @@ export class AttendanceController {
       const leader = await User.findByPk(leaderId, {
         include: [{ model: Member, as: "members", attributes: ["id", "name"] }],
       });
+
       if (!leader) return res.status(404).json({ error: "Leader not found" });
+
       const members = (leader as any).members || [];
-      if (members.length === 0) {
-        return res.json({ memberStats: [] });
-      }
+      if (members.length === 0) return res.json({ memberStats: [] });
+
       const memberIds = members.map((m: Member) => m.id);
+
       const attendanceCount = await Attendance.findAll({
         attributes: [
           "memberId",
@@ -161,26 +151,22 @@ export class AttendanceController {
       const memberStats = members.map((member: Member) => {
         let presentCount = 0;
         let absentCount = 0;
-        const recordsForMember = (attendanceCount as any[]).filter((p)=> p.memberId===member.id);
-       
-        recordsForMember.forEach(record=>{
-            if(record.status === 0){
-                presentCount = parseInt(record.count,10);
-            }else if(record.status === 1){
-                absentCount = parseInt(record.count,10);
-            }
-        })
-        // console.log(absentCount);
-        return {
-          memberId: member.id,
-          name: member.name,
-          presentCount,
-          absentCount,
-        };
+
+        const records = (attendanceCount as any[]).filter(
+          (p) => p.memberId === member.id,
+        );
+
+        records.forEach((record) => {
+          if (record.status === 0) presentCount = parseInt(record.count, 10);
+          else if (record.status === 1) absentCount = parseInt(record.count, 10);
+        });
+
+        return { memberId: member.id, name: member.name, presentCount, absentCount };
       });
+
       res.json({ memberStats });
     } catch (err) {
-      console.error(err);
+      console.error("Single attendance error:", err);
       res.status(500).json({ error: "Failed to calculate attendance" });
     }
   }

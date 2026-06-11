@@ -1,76 +1,186 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Put,
-  Middleware,
-  Delete,
-} from "@overnightjs/core";
+import { Controller, Post, Get, Put, Middleware, Delete } from "@overnightjs/core";
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-// 1. Impor middleware dan interface AuthenticatedRequest
-import { authMiddleware, AuthenticatedRequest } from "../middleware/auth"; // Pastikan path ini benar
-import { error } from "console";
-import Member from "../models/Member";
+import { authMiddleware } from "../middleware/auth";
+import { requirePermission } from "../middleware/roleAuth";
 import { User, Role } from "../models";
+import {
+  PERMISSIONS,
+  getPermissionsForRoles,
+} from "../types";
+import type {
+  AuthenticatedRequest,
+  LoginRequestBody,
+  RegisterRequestBody,
+  UserResponse,
+} from "../types";
 
-@Controller("api/users")
+const COOKIE_NAME = "authToken";
+const TOKEN_EXPIRY = "8h";
+const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
+
+function setCookieToken(res: Response, token: string): void {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: COOKIE_MAX_AGE,
+    path: "/",
+  });
+}
+
+function clearCookieToken(res: Response): void {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
+  });
+}
+
+@Controller("api/auth")
 export class AuthController {
-  // Endpoint ini tetap publik, tidak perlu middleware
   @Post("register")
-  private async register(req: Request, res: Response) {
-    // Destructure all possible fields from the request body
-    const { username, password, dob, accountType, gender, grade } = req.body;
+  private async register(req: Request, res: Response): Promise<any> {
+    const { username, password, dob, accountType, gender, grade } =
+      req.body as RegisterRequestBody;
 
-    // --- 1. Validation ---
     if (!username || !password || !dob || !accountType) {
       return res.status(400).json({
-        error: "Username, password, DoB, and account type are required",
+        error: "Username, password, date of birth, and account type are required",
       });
     }
 
-    // Conditional validation: if they register as a leader, gender and grade are required
     if (accountType === "leader" && (!gender || !grade)) {
       return res.status(400).json({
-        error: "Gender and grade are required for the Leader account type",
+        error: "Gender and grade are required for leader accounts",
       });
     }
 
     try {
-      // Check if username already exists
-      const existingUser = await User.findOne({ where: { username } });
-      if (existingUser) {
-        return res.status(400).json({ error: "Username is already taken" });
+      const existing = await User.findOne({ where: { username } });
+      if (existing) {
+        return res.status(409).json({ error: "Username is already taken" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // --- 2. Prepare User Data ---
-      const userData: any = {
+      await User.create({
         username,
         password: hashedPassword,
-        status: "pending", // Always pending on initial registration
+        status: "pending",
         gender,
         grade,
         dob,
-        // The role is NOT set here. It will be set by an admin during approval.
-      };
-      await User.create(userData);
+      });
 
-      res
-        .status(201)
-        .json({ message: "User registered successfully, pending approval." });
+      res.status(201).json({ message: "Registration successful, pending approval." });
     } catch (err) {
-      console.error("Failed to register user:", err);
+      console.error("Register error:", err);
       res.status(500).json({ error: "Failed to register user" });
     }
   }
 
-  // Endpoint ini sekarang dilindungi oleh middleware
-  @Get("pending")
+  @Post("login")
+  private async login(req: Request, res: Response): Promise<any> {
+    const { username, password } = req.body as LoginRequestBody;
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Username and password are required" });
+    }
+
+    try {
+      const user = await User.findOne({
+        where: { username },
+        include: [
+          {
+            model: Role,
+            as: "roles",
+            attributes: ["name"],
+            through: { attributes: [] },
+          },
+        ],
+      });
+
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      if (user.status !== "approved") {
+        return res.status(403).json({
+          error: "Your account has not been approved yet.",
+        });
+      }
+
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      const roleNames = user.roles?.map((r) => r.name) ?? [];
+      const permissions = getPermissionsForRoles(roleNames);
+
+      const payload = {
+        userId: user.id,
+        username: user.username,
+        name: user.username,
+        roles: roleNames,
+        permissions,
+        gender: user.gender,
+        grade: user.grade,
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET!, {
+        expiresIn: TOKEN_EXPIRY,
+      });
+
+      setCookieToken(res, token);
+
+      const userResponse: UserResponse = {
+        id: user.id,
+        username: user.username,
+        name: user.username,
+        roles: roleNames,
+        permissions,
+        gender: user.gender,
+        grade: user.grade,
+      };
+
+      res.json({ message: "Login successful", user: userResponse });
+    } catch (err) {
+      console.error("Login error:", err);
+      res.status(500).json({ error: "Login failed" });
+    }
+  }
+
+  @Post("logout")
+  private logout(_req: Request, res: Response): void {
+    clearCookieToken(res);
+    res.json({ message: "Logged out successfully" });
+  }
+
+  @Get("me")
   @Middleware(authMiddleware)
-  private async getPendingUsers(req: AuthenticatedRequest, res: Response) {
+  private getMe(req: AuthenticatedRequest, res: Response): void {
+    const { userId, username, name, roles, permissions, gender, grade } = req.user!;
+
+    const userResponse: UserResponse = {
+      id: userId,
+      username,
+      name,
+      roles,
+      permissions,
+      gender,
+      grade,
+    };
+
+    res.json(userResponse);
+  }
+
+  @Get("pending")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_VIEW)])
+  private async getPendingUsers(_req: AuthenticatedRequest, res: Response) {
     try {
       const pendingUsers = await User.findAll({
         where: { status: "pending" },
@@ -78,136 +188,68 @@ export class AuthController {
       });
       res.json(pendingUsers);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch pending users error:", err);
       res.status(500).json({ error: "Failed to fetch pending users" });
     }
   }
+
   @Get("roles")
-  @Middleware(authMiddleware)
-  private async getAllRoles(req: AuthenticatedRequest, res: Response) {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
+  private async getAllRoles(_req: AuthenticatedRequest, res: Response) {
     try {
       const roles = await Role.findAll({ attributes: ["id", "name"] });
       res.json(roles);
     } catch (err) {
-      console.error("Failed to fetch roles:", err);
+      console.error("Fetch roles error:", err);
       res.status(500).json({ error: "Failed to fetch roles" });
     }
   }
-  // Endpoint ini juga dilindungi oleh middleware
+
   @Put("approve/:id")
-  @Middleware(authMiddleware)
-  private async approveUser(req: AuthenticatedRequest, res: Response) {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
+  private async approveUser(req: AuthenticatedRequest, res: Response): Promise<any> {
     const { id } = req.params;
     const { roleIds } = req.body;
 
     try {
       const user = await User.findByPk(id);
-
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      // Hanya ubah status, jangan sentuh role
-      user.status = "approved";
 
+      user.status = "approved";
       await user.save();
       await (user as any).setRoles(roleIds);
-      res.json({
-        message: `User ${user.username} has been approved with their chosen role.`,
-      });
+
+      res.json({ message: `User ${user.username} has been approved.` });
     } catch (err) {
-      console.error("Failed to approve user:", err);
+      console.error("Approve user error:", err);
       res.status(500).json({ error: "Failed to approve user" });
     }
   }
+
   @Delete("reject/:id")
-  @Middleware(authMiddleware)
-  private async rejectUser(req: AuthenticatedRequest, res: Response) {
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
+  private async rejectUser(req: AuthenticatedRequest, res: Response): Promise<any> {
     const { id } = req.params;
+
     try {
       const user = await User.findByPk(id);
       if (!user) {
-        return res.status(404).json({ error: "user not found" });
+        return res.status(404).json({ error: "User not found" });
       }
-      if (user.status !== "pending") {
-        return res
-          .status(400)
-          .json({ error: `User is not in a pending state.` });
-      }
-      const username = user.username; // Store username for the response message
-      await user.destroy(); // Delete the user from the database
 
-      res.json({
-        message: `User registration for '${username}' has been rejected and removed.`,
-      });
+      if (user.status !== "pending") {
+        return res.status(400).json({ error: "User is not in a pending state." });
+      }
+
+      const { username } = user;
+      await user.destroy();
+
+      res.json({ message: `Registration for '${username}' has been rejected.` });
     } catch (err) {
-      console.error(err);
+      console.error("Reject user error:", err);
       res.status(500).json({ error: "Failed to reject user" });
     }
-  }
-  // Endpoint login juga tetap publik
-  @Post("login")
-  private async login(req: Request, res: Response): Promise<any> {
-    const { username, password } = req.body;
-
-    if (!username || !password) {
-      return res
-        .status(400)
-        .json({ error: "Username and password are required" });
-    }
-
-    // Mengambil user beserta relasi roles-nya dalam satu query
-    const userWithRoles = await User.findOne({
-      where: { username },
-      include: [
-        {
-          model: Role,
-          as: "roles",
-          attributes: ["name"],
-          through: { attributes: [] },
-        },
-      ],
-    });
-
-    if (!userWithRoles) {
-      return res.status(400).json({ error: "Invalid username or password" });
-    }
-
-    if (userWithRoles.status !== "approved") {
-      return res.status(403).json({
-        error: "Your account has not been approved by an administrator yet.",
-      });
-    }
-
-    const validPassword = await bcrypt.compare(
-      password,
-      userWithRoles.password
-    );
-    if (!validPassword) {
-      return res.status(400).json({ error: "Invalid username or password" });
-    }
-
-    if (!userWithRoles.roles) {
-      return res.status(500).json({ error: "Could not fetch user roles." });
-    }
-    const userRoleNames = userWithRoles.roles.map((role) => role.name);
-
-    const tokenPayload = {
-      userId: userWithRoles.id,
-      username: userWithRoles.username,
-      name: userWithRoles.username,
-      roles: userRoleNames,
-      gender: userWithRoles.gender, // Diambil langsung dari User
-      grade: userWithRoles.grade, // Diambil langsung dari User
-    };
-
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET!, {
-      expiresIn: "8h",
-    });
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: tokenPayload, // Kirim data user yang sudah lengkap
-    });
   }
 }

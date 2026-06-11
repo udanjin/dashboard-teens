@@ -1,45 +1,23 @@
-import { Response, NextFunction } from 'express';
-import { AuthenticatedRequest } from './auth'; 
-import User from '../models/User';
-import Role from '../models/Role'; // <-- Import the Role model
+import { Response, NextFunction } from "express";
+import type { AuthenticatedRequest, Permission } from "../types";
 
-export const roleAuthMiddleware = (allowedRoles: string[]) => {
-  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const userId = req.user?.userId;
+export const requirePermission = (required: Permission | Permission[]) => {
+  const requiredPerms = Array.isArray(required) ? required : [required];
 
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const userPerms = req.user?.permissions;
+
+    if (!userPerms?.length) {
+      res.status(403).json({ error: "Forbidden: No permissions assigned" });
+      return;
     }
 
-    try {
-      // 1. Fetch the user AND their associated roles
-      const user = await User.findByPk(userId, {
-        include: [{
-          model: Role,
-          as: 'roles',
-          attributes: ['name'] // Only need the role name
-        }]
-      });
+    const hasPermission = requiredPerms.some((p) => userPerms.includes(p));
 
-      // 2. Check if the user or their roles exist
-      if (!user || !user.roles || user.roles.length === 0) {
-        return res.status(403).json({ error: 'Forbidden: No roles assigned' });
-      }
-
-      // 3. Extract the names of the user's roles into a simple array
-      const userRoleNames = user.roles.map(role => role.name); // e.g., ['fcl', 'leader']
-
-      // 4. Check if the user's roles array has at least one of the allowed roles
-      const hasPermission = userRoleNames.some(roleName => allowedRoles.includes(roleName));
-
-      if (hasPermission) {
-        next(); // Permission granted, continue
-      } else {
-        return res.status(403).json({ error: 'Forbidden: You do not have permission for this action' });
-      }
-    } catch (error) {
-      console.error("Role auth error:", error);
-      return res.status(500).json({ error: 'Internal server error' });
+    if (hasPermission) {
+      next();
+    } else {
+      res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
   };
 };

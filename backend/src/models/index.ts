@@ -16,7 +16,7 @@ Member.belongsToMany(User, {
 });
 
 User.belongsToMany(Role, {
-  through: "UserRole", // The name of the junction table
+  through: "UserRole",
   as: "roles",
   foreignKey: "userId",
 });
@@ -28,3 +28,5 @@ Role.belongsToMany(User, {
 });
 
 export { User, Role, Member, Attendance };
+export { PERMISSIONS, ROLE_PERMISSIONS, getPermissionsForRoles } from "../types";
+export type { Permission } from "../types";
