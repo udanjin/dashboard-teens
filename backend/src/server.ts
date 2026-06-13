@@ -8,6 +8,9 @@ import "./models";
 const ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "https://dashboard-teens.vercel.app",
+  "https://www.atmosphereteens.my.id",
+  "https://atmosphereteens.my.id",
+  "https://api.atmosphereteens.my.id",
 ];
 
 export class Server extends OvernightServer {
@@ -23,7 +26,7 @@ export class Server extends OvernightServer {
     return new Promise<void>((resolve) => {
       const server = this.app.listen(port, "0.0.0.0", () => {
         console.log(`Server running on http://localhost:${port}`);
-        console.log(`process.env: ${JSON.stringify(process.env, null, 2)}`);
+        // console.log(`process.env: ${JSON.stringify(process.env, null, 2)}`);
         resolve();
       });
 
@@ -34,6 +37,7 @@ export class Server extends OvernightServer {
   }
 
   private setupMiddleware(): void {
+    this.app.set("trust proxy", 1);
     const corsOptions: CorsOptions = {
       origin: ALLOWED_ORIGINS,
       credentials: true,

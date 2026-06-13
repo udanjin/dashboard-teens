@@ -23,9 +23,10 @@ const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
 function setCookieToken(res: Response, token: string): void {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     maxAge: COOKIE_MAX_AGE,
+    domain: ".atmosphereteens.my.id",
     path: "/",
   });
 }
