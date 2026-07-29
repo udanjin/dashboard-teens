@@ -23,7 +23,11 @@ async function handler(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const targetUrl = `${BACKEND_URL}/api/${path.join("/")}`;
+  // Preserve the original query string (?month=7&year=2026, ?date=..., etc.)
+  // Without this, GET endpoints that rely on query params receive nothing.
+  const { searchParams } = new URL(req.url);
+  const queryString = searchParams.toString();
+  const targetUrl = `${BACKEND_URL}/api/${path.join("/")}${queryString ? `?${queryString}` : ""}`;
 
   // Forward the request body for non-GET / non-HEAD methods
   let body: ArrayBuffer | undefined;
