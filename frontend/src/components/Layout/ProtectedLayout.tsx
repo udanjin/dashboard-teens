@@ -63,7 +63,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           onLogout={logout}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="px-6 pb-6 pt-20">{children}</main>
+        <main className="px-3 sm:px-6 pb-6 pt-20 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

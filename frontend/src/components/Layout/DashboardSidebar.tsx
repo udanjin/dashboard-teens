@@ -53,7 +53,11 @@ export default function DashboardSidebar({
     }
     return items.map((item) => ({
       ...item,
-      label: <Link href={item.key}>{item.label}</Link>,
+      label: (
+        <Link href={item.key} onClick={() => setIsOpen(false)}>
+          {item.label}
+        </Link>
+      ),
     }));
   };
 

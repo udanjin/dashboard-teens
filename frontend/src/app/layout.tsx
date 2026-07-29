@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   description: "Welcome to ATeens Dashboard",
 };
 
+// Required for iOS safe-area (notch / home indicator support)
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

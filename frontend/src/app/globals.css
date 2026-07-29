@@ -82,4 +82,37 @@ body {
 /* Ensure consistent font weight and styling */
 body {
   font-feature-settings: 'cv03', 'cv04', 'cv11';
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+  /* iOS safe area support (notch / home indicator) */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Ensure all elements use border-box sizing (prevents layout overflow) */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Responsive calendar: allow horizontal scroll on small screens */
+.ant-picker-calendar {
+  overflow-x: auto;
+}
+
+/* Notification dropdown: cap width on mobile so it doesn't overflow */
+@media (max-width: 640px) {
+  .ant-dropdown {
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+/* Better touch targets for Ant Design buttons on mobile */
+@media (max-width: 768px) {
+  .ant-btn {
+    min-height: 36px;
+  }
+  /* Table font size smaller on mobile for readability */
+  .ant-table {
+    font-size: 13px;
+  }
 }

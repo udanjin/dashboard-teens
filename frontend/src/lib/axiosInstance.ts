@@ -2,7 +2,10 @@ import axios from "axios";
 import { clearStoredUser } from "./authUtils";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  // Use the Next.js rewrite proxy (/api/* → Cloud Run) instead of calling
+  // Cloud Run directly. This makes all requests same-origin from the browser's
+  // perspective, which fixes cookie handling on Safari iOS (ITP).
+  baseURL: "/api",
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });

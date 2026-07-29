@@ -21,21 +21,27 @@ const TOKEN_EXPIRY = "8h";
 const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
 
 function setCookieToken(res: Response, token: string): void {
+  // Do NOT set an explicit `domain` — let the browser derive it from the
+  // request's Host header. Since the Next.js rewrite proxies all API calls
+  // through atmosphereteens.my.id, the cookie is stored as same-origin,
+  // which is fully compatible with Safari iOS (no ITP blocking).
+  // SameSite=Lax is sufficient and more secure than None for same-origin cookies.
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
-    sameSite: "none",
+    sameSite: "lax",
     maxAge: COOKIE_MAX_AGE,
-    domain: ".atmosphereteens.my.id",
     path: "/",
   });
 }
 
 function clearCookieToken(res: Response): void {
+  // Options must match setCookieToken exactly (except maxAge) for the
+  // browser to correctly identify and clear the cookie.
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true,
+    sameSite: "lax",
     path: "/",
   });
 }

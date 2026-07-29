@@ -132,14 +132,14 @@ export default function FclPage() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <DatePicker picker="month" value={statsDate} onChange={(d) => d && setStatsDate(d)} className="w-full" />
-          <Input placeholder="Search Member" prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <DatePicker picker="month" value={statsDate} onChange={(d) => d && setStatsDate(d)} className="w-36 shrink-0" />
+          <Input placeholder="Search Member" prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-40 shrink-0" />
           {canTakeAttendance && (
-            <Button onClick={attendanceModal.open}>Take Attendance</Button>
+            <Button onClick={attendanceModal.open} className="shrink-0">Take Attendance</Button>
           )}
           {canManageMembers && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={addMemberModal.open}>Add Member</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={addMemberModal.open} className="shrink-0">Add Member</Button>
           )}
         </div>
       </div>
