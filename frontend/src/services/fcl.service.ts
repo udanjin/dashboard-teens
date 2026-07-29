@@ -17,6 +17,10 @@ export const fclService = {
     return axiosInstance.post("/fcl/members", { membersData });
   },
 
+  editMember(memberId: number, data: { name: string; dob: string }) {
+    return axiosInstance.put(`/fcl/members/${memberId}`, data);
+  },
+
   requestDeleteMember(memberId: number, reason: string) {
     return axiosInstance.put(`/fcl/request-delete/${memberId}`, { reason });
   },

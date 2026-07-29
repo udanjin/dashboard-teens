@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button, DatePicker, Form, Input, Typography, message } from "antd";
-import { PlusOutlined, SearchOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/id";
@@ -17,6 +17,7 @@ import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import AddMemberForm from "@/components/FCL/AddMemberForm";
 import AttendanceModal from "@/components/FCL/AttendanceModal";
 import DeleteMemberModal from "@/components/FCL/DeleteMemberModal";
+import EditMemberModal, { EDIT_MEMBER_MODAL_KEY } from "@/components/FCL/EditMemberModal";
 import { PERMISSIONS } from "@/types";
 import type { Member, AddMemberFormValues } from "@/types";
 
@@ -33,11 +34,13 @@ export default function FclPage() {
   const addMemberModal = useModal("fcl-add-member");
   const attendanceModal = useModal("fcl-attendance");
   const deleteModal = useModal("fcl-delete");
+  const editModal = useModal(EDIT_MEMBER_MODAL_KEY);
 
   const [form] = Form.useForm();
   const [searchText, setSearchText] = useState("");
   const [statsDate, setStatsDate] = useState(dayjs());
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [memberToEdit, setMemberToEdit] = useState<Member | null>(null);
 
   const fetchMembers = useCallback(async (): Promise<Member[]> => {
     const [membersRes, statsRes] = await Promise.all([
@@ -99,12 +102,27 @@ export default function FclPage() {
     ...(canManageMembers
       ? [
           {
-            title: "Action" as const, key: "action", fixed: "right" as const, align: "center" as const, width: 120,
+            title: "Action" as const, key: "action", fixed: "right" as const, align: "center" as const, width: 100,
             render: (_: unknown, record: Member) => (
-              <Button danger icon={<DeleteOutlined />} onClick={() => {
-                setMemberToDelete(record);
-                deleteModal.open();
-              }} />
+              <div className="flex gap-2 justify-center">
+                <Button
+                  icon={<EditOutlined />}
+                  size="small"
+                  onClick={() => {
+                    setMemberToEdit(record);
+                    editModal.open();
+                  }}
+                />
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  size="small"
+                  onClick={() => {
+                    setMemberToDelete(record);
+                    deleteModal.open();
+                  }}
+                />
+              </div>
             ),
           },
         ]
@@ -167,6 +185,14 @@ export default function FclPage() {
         open={deleteModal.isOpen}
         onClose={() => { deleteModal.close(); setMemberToDelete(null); }}
         onDeleted={refresh}
+      />
+
+      <EditMemberModal
+        member={memberToEdit}
+        onSuccess={() => {
+          setMemberToEdit(null);
+          refresh();
+        }}
       />
     </div>
   );

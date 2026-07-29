@@ -77,3 +77,8 @@ export interface AddMemberData {
 export interface AddMemberFormValues {
   names: { name: string; dob: Dayjs }[];
 }
+
+export interface EditMemberFormValues {
+  name: string;
+  dob: Dayjs;
+}

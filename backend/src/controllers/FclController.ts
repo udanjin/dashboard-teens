@@ -69,6 +69,52 @@ export class FclController {
     }
   }
 
+  @Put("members/:id")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS)])
+  private async editMember(req: AuthenticatedRequest, res: Response): Promise<any> {
+    const leaderId = req.user?.userId;
+    const { id } = req.params;
+    const { name, dob } = req.body;
+
+    if (!leaderId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!name && !dob) {
+      return res.status(400).json({ error: "At least one of name or date of birth is required" });
+    }
+
+    try {
+      // Verify the member belongs to this leader
+      const leader = await User.findByPk(leaderId, {
+        include: [{ model: Member, as: "members", where: { id }, required: false }],
+      });
+
+      if (!leader) {
+        return res.status(404).json({ error: "Leader not found" });
+      }
+
+      const ownedMembers = (leader as any).members ?? [];
+      if (ownedMembers.length === 0) {
+        return res.status(403).json({ error: "You do not have permission to edit this member" });
+      }
+
+      const member = await Member.findByPk(id);
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      if (name) member.name = name;
+      if (dob) member.dob = dob;
+      await member.save();
+
+      res.json({ message: "Member updated successfully", member: { id: member.id, name: member.name, dob: member.dob } });
+    } catch (err) {
+      console.error("Edit member error:", err);
+      res.status(500).json({ error: "Failed to update member" });
+    }
+  }
+
   @Get("my-members")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_VIEW)])
   private async getMyMembers(req: AuthenticatedRequest, res: Response): Promise<any> {
