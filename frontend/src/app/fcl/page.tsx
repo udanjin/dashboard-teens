@@ -97,35 +97,36 @@ export default function FclPage() {
   const columns: ColumnsType<Member> = [
     { title: "Name", dataIndex: "name", key: "name", sorter: (a, b) => a.name.localeCompare(b.name) },
     { title: "Date of Birth", dataIndex: "dob", key: "dob", sorter: (a, b) => dayjs(a.dob).diff(dayjs(b.dob)) },
+    { title: "Phone Number", dataIndex: "phoneNumber", key: "phoneNumber", },
     { title: "Present", dataIndex: "presentCount", key: "presentCount", sorter: (a, b) => (a.presentCount ?? 0) - (b.presentCount ?? 0) },
     { title: "Absent", dataIndex: "absentCount", key: "absentCount", sorter: (a, b) => (a.absentCount ?? 0) - (b.absentCount ?? 0) },
     ...(canManageMembers
       ? [
-          {
-            title: "Action" as const, key: "action", fixed: "right" as const, align: "center" as const, width: 100,
-            render: (_: unknown, record: Member) => (
-              <div className="flex gap-2 justify-center">
-                <Button
-                  icon={<EditOutlined />}
-                  size="small"
-                  onClick={() => {
-                    setMemberToEdit(record);
-                    editModal.open();
-                  }}
-                />
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  size="small"
-                  onClick={() => {
-                    setMemberToDelete(record);
-                    deleteModal.open();
-                  }}
-                />
-              </div>
-            ),
-          },
-        ]
+        {
+          title: "Action" as const, key: "action", fixed: "right" as const, align: "center" as const, width: 100,
+          render: (_: unknown, record: Member) => (
+            <div className="flex gap-2 justify-center">
+              <Button
+                icon={<EditOutlined />}
+                size="small"
+                onClick={() => {
+                  setMemberToEdit(record);
+                  editModal.open();
+                }}
+              />
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+                onClick={() => {
+                  setMemberToDelete(record);
+                  deleteModal.open();
+                }}
+              />
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
