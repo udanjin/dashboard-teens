@@ -180,6 +180,7 @@ export default function FclAdminHome() {
   const memberDetailColumns: ColumnsType<MemberStat> = [
     { title: "Name", dataIndex: "name", key: "name" },
     { title: "Date of Birth", dataIndex: "dob", key: "dob" },
+    { title: "Phone Number", dataIndex: "phoneNumber", key: "phoneNumber" },
     { title: "Present", dataIndex: "presentCount", key: "presentCount" },
     { title: "Absent", dataIndex: "absentCount", key: "absentCount" },
   ];
