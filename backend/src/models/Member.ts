@@ -8,9 +8,10 @@ class Member extends Model {
   public status!: "active" | "pending_deletion";
   public deletionReason!: string | null;
   public dob!: Date;
-   public grade!: number;
+  public grade!: number;
   public gender!: string;
-  public readonly leaders?: User[]; 
+  public phoneNumber!: string;
+  public readonly leaders?: User[];
 }
 
 Member.init(
@@ -24,14 +25,14 @@ Member.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-   
+
     grade: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    gender:{
-      type:DataTypes.STRING,
-      allowNull:false
+    gender: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
     status: {
       type: DataTypes.ENUM("active", "pending_deletion"),
@@ -43,10 +44,14 @@ Member.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    dob:{
-      type:DataTypes.DATEONLY,
-      allowNull:false,
-    }
+    dob: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     sequelize,

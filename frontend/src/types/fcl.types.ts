@@ -1,6 +1,7 @@
 import type { Dayjs } from "dayjs";
 
 export interface Member {
+  phoneNumber: string | undefined;
   id: number;
   name: string;
   dob?: string | null;
@@ -81,4 +82,5 @@ export interface AddMemberFormValues {
 export interface EditMemberFormValues {
   name: string;
   dob: Dayjs;
+  phoneNumber: string;
 }

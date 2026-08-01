@@ -30,6 +30,15 @@ const fields: FieldConfig[][] = [
       props: { className: "w-full" },
     },
   ],
+  [
+    {
+      name: "phoneNumber",
+      label: "Phone Number",
+      componentType: "input",
+      rules: [{ required: true, message: "Phone number tidak boleh kosong" }],
+      placeholder: "Masukkan phone number",
+    },
+  ],
 ];
 
 interface EditMemberModalProps {
@@ -47,6 +56,7 @@ export default function EditMemberModal({ member, onSuccess }: EditMemberModalPr
       form.setFieldsValue({
         name: member.name,
         dob: member.dob ? dayjs(member.dob) : undefined,
+        phoneNumber: member.phoneNumber,
       });
     }
   }, [member, modal.isOpen, form]);
@@ -58,6 +68,7 @@ export default function EditMemberModal({ member, onSuccess }: EditMemberModalPr
       await fclService.editMember(member.id, {
         name: values.name,
         dob: values.dob.format("YYYY-MM-DD"),
+        phoneNumber: values.phoneNumber,
       });
       message.success(`Data member "${values.name}" berhasil diperbarui`);
       modal.close();

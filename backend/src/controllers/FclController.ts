@@ -54,7 +54,7 @@ export class FclController {
         }
 
         const newMember = await Member.create(
-          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob },
+          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob, phoneNumber: memberInfo.phoneNumber },
           { transaction },
         );
         await (leader as any).addMember(newMember, { transaction });
@@ -74,14 +74,14 @@ export class FclController {
   private async editMember(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { id } = req.params;
-    const { name, dob } = req.body;
+    const { name, dob, phoneNumber } = req.body;
 
     if (!leaderId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    if (!name && !dob) {
-      return res.status(400).json({ error: "At least one of name or date of birth is required" });
+    if (!name && !dob && !phoneNumber) {
+      return res.status(400).json({ error: "At least one of name or date of birth or phone number is required" });
     }
 
     try {
@@ -106,9 +106,10 @@ export class FclController {
 
       if (name) member.name = name;
       if (dob) member.dob = dob;
+      if (phoneNumber) member.phoneNumber = phoneNumber;
       await member.save();
 
-      res.json({ message: "Member updated successfully", member: { id: member.id, name: member.name, dob: member.dob } });
+      res.json({ message: "Member updated successfully", member: { id: member.id, name: member.name, dob: member.dob, phoneNumber: member.phoneNumber } });
     } catch (err) {
       console.error("Edit member error:", err);
       res.status(500).json({ error: "Failed to update member" });

@@ -45,6 +45,14 @@ export default function AddMemberForm({ form, onFinish, loading }: AddMemberForm
                     >
                       <DatePicker placeholder="Date of Birth" className="w-full" />
                     </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, "phoneNumber"]}
+                      rules={[{ required: true, message: "Please input member's phone number!" }]}
+                      className="flex-1 mb-0"
+                    >
+                      <Input placeholder="Phone Number" />
+                    </Form.Item>
                     {fieldsList.length > 1 && (
                       <Button type="text" danger icon={<CloseOutlined />} onClick={() => remove(name)} />
                     )}
