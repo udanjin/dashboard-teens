@@ -7,6 +7,7 @@ import sequelize from "../config/db";
 import { Op, Sequelize } from "sequelize";
 import dayjs from "dayjs";
 import type { AuthenticatedRequest } from "../types";
+import { normalizePhoneNumber } from "../utils/phone.util";
 
 @Controller("api/fcl")
 export class FclController {
@@ -52,9 +53,16 @@ export class FclController {
         if (isNaN(gradeNum)) {
           throw new Error(`Grade must be a valid number for member: ${memberInfo.name}`);
         }
-
+        let validPhoneNumber = null;
+        if (memberInfo.phoneNumber) {
+          validPhoneNumber = normalizePhoneNumber(memberInfo.phoneNumber);
+        }
+        if (!validPhoneNumber) {
+          await transaction.rollback()
+          return res.status(400).json({ error: `Format Phone Number of ${memberInfo.name} is invalid` });
+        }
         const newMember = await Member.create(
-          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob, phoneNumber: memberInfo.phoneNumber },
+          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob, phoneNumber: validPhoneNumber },
           { transaction },
         );
         await (leader as any).addMember(newMember, { transaction });
@@ -103,10 +111,14 @@ export class FclController {
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }
-
+      let validPhoneNumber = undefined;
       if (name) member.name = name;
       if (dob) member.dob = dob;
-      if (phoneNumber) member.phoneNumber = phoneNumber;
+      if (phoneNumber) validPhoneNumber = normalizePhoneNumber(phoneNumber);
+      if (!validPhoneNumber) {
+        return res.status(400).json({ error: `Format Phone Number of ${member.name} is invalid` });
+      }
+      member.phoneNumber = validPhoneNumber;
       await member.save();
 
       res.json({ message: "Member updated successfully", member: { id: member.id, name: member.name, dob: member.dob, phoneNumber: member.phoneNumber } });
@@ -159,7 +171,7 @@ export class FclController {
           {
             model: Member,
             as: "members",
-            attributes: ["id", "name", "dob"],
+            attributes: ["id", "name", "dob", "phoneNumber"],
             through: { attributes: [] },
           },
         ],

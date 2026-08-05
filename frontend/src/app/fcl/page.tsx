@@ -80,6 +80,7 @@ export default function FclPage() {
           dob: item.dob ? item.dob.format("YYYY-MM-DD") : null,
           grade: user.grade!,
           gender: user.gender!,
+          phoneNumber: item.phoneNumber,
         }))
       );
       message.success("Members added successfully!");

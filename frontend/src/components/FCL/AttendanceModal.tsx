@@ -10,7 +10,7 @@ import type { AttendanceRecord } from "@/types";
 
 const { Text } = Typography;
 
-function AttendanceButton({ status, onClick }: { status: number | null; onClick: () => void }) {
+function AttendanceButton({ status, onClick, disabled }: { status: number | null; onClick: () => void; disabled?: boolean }) {
   const config: Record<number, { text: string; type: "primary" | "dashed"; danger: boolean }> = {
     0: { text: "Present", type: "primary", danger: false },
     1: { text: "Absent", type: "dashed", danger: true },
@@ -18,7 +18,7 @@ function AttendanceButton({ status, onClick }: { status: number | null; onClick:
   const c = status !== null ? config[status as number] : null;
 
   return (
-    <Button onClick={onClick} type={c?.type ?? "default"} danger={c?.danger ?? false} size="small">
+    <Button onClick={onClick} type={c?.type ?? "default"} danger={c?.danger ?? false} size="small" disabled={disabled}>
       {c?.text ?? "Unmarked"}
     </Button>
   );
@@ -115,16 +115,24 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
   };
 
   const sundays = getSundaysOfMonth(date);
+  const today = dayjs().endOf('day');
+  
   const columns: ColumnsType<AttendanceRecord> = [
     { title: "Nama", dataIndex: "name", key: "name", fixed: "left", width: 150 },
     ...sundays.map((sunday) => {
       const key = sunday.format("YYYY-MM-DD");
+      const isFuture = sunday.isAfter(today);
+      
       return {
         title: sunday.format("D MMM"),
         key,
         dataIndex: key,
         render: (_: unknown, record: AttendanceRecord) => (
-          <AttendanceButton status={record[key] as number | null} onClick={() => handleChange(record.memberId as number, key)} />
+          <AttendanceButton 
+            status={record[key] as number | null} 
+            onClick={() => handleChange(record.memberId as number, key)} 
+            disabled={isFuture}
+          />
         ),
         align: "center" as const,
       };

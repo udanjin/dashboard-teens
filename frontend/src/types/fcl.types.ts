@@ -73,10 +73,11 @@ export interface AddMemberData {
   dob: string | null;
   grade: number;
   gender: string;
+  phoneNumber: string;
 }
 
 export interface AddMemberFormValues {
-  names: { name: string; dob: Dayjs }[];
+  names: { name: string; dob: Dayjs; phoneNumber: string }[];
 }
 
 export interface EditMemberFormValues {

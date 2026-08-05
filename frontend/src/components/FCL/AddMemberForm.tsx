@@ -5,6 +5,7 @@ import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import type { FormInstance } from "antd";
 import DynamicForm, { type FieldConfig } from "@/components/Common/DynamicForm";
 import type { AddMemberFormValues } from "@/types";
+import { phoneValidator } from "@/lib/validator";
 
 interface AddMemberFormProps {
   form: FormInstance;
@@ -48,7 +49,7 @@ export default function AddMemberForm({ form, onFinish, loading }: AddMemberForm
                     <Form.Item
                       {...restField}
                       name={[name, "phoneNumber"]}
-                      rules={[{ required: true, message: "Please input member's phone number!" }]}
+                      rules={[{ required: true, message: "Please input member's phone number!" }, phoneValidator]}
                       className="flex-1 mb-0"
                     >
                       <Input placeholder="Phone Number" />
