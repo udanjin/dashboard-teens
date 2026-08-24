@@ -2,6 +2,10 @@ import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
 import User from "./User";
 
+import {
+  BelongsToManyGetAssociationsMixin,
+} from "sequelize";
+
 class Member extends Model {
   public id!: number;
   public name!: string;
@@ -12,6 +16,8 @@ class Member extends Model {
   public gender!: string;
   public phoneNumber!: string;
   public readonly leaders?: User[];
+  
+  public getLeaders!: BelongsToManyGetAssociationsMixin<User>;
 }
 
 Member.init(

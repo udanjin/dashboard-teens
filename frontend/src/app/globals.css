@@ -1,44 +1,31 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F9FAFB;
+  --foreground: #111827;
 }
 
-.gradient-text {
-  background:linear-gradient(
-  to right,
-  #667eea,
-  #805ad5,
-  #D81B60,
-  #805ad5,
-  #667eea,
-  #805ad5,
-  #D81B60);
-  background-size: 200% 200%;
-  background-clip: text;
+.dark {
+  --background: #050505;
+  --foreground: rgba(255, 255, 255, 0.95);
 }
 
-/* @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Ambient Premium Glow (Ethereal Glass) - ONLY in dark mode */
+.dark body::before {
+  content: '';
+  position: fixed;
+  top: -20vh;
+  right: -20vw;
+  width: 70vw;
+  height: 70vh;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(5, 5, 5, 0) 70%);
+  filter: blur(120px);
+  z-index: -1;
+  pointer-events: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
- /* Ensure full width for main content */
+/* Ensure full width for main content */
 .ant-layout-content {
   width: 100%;
   max-width: none;
@@ -57,40 +44,52 @@ body {
 .main-content {
   max-width: none !important;
 }
+
 * {
-  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
 }
 
 /* Specifically override Ant Design components */
 .ant-typography,
 .ant-typography * {
-  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
 }
 
 .ant-input,
 .ant-input-affix-wrapper,
 .ant-btn,
-.ant-form-item-label > label,
+.ant-form-item-label>label,
 .ant-card,
 .ant-message,
 .ant-notification,
 .ant-select,
 .ant-picker {
-  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+}
+
+/* Magnetic Physics for Buttons (Haptic feedback) */
+.ant-btn {
+  transition: all 300ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+.ant-btn:active {
+  transform: scale(0.96) !important;
 }
 
 /* Ensure consistent font weight and styling */
 body {
   font-feature-settings: 'cv03', 'cv04', 'cv11';
-  /* Prevent horizontal scroll on mobile */
   overflow-x: hidden;
-  /* iOS safe area support (notch / home indicator) */
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  background: var(--background);
+  color: var(--foreground);
 }
 
-/* Ensure all elements use border-box sizing (prevents layout overflow) */
-*, *::before, *::after {
+/* Ensure all elements use border-box sizing */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -108,11 +107,7 @@ body {
 
 /* Better touch targets for Ant Design buttons on mobile */
 @media (max-width: 768px) {
-  .ant-btn {
-    min-height: 36px;
-  }
-  /* Table font size smaller on mobile for readability */
   .ant-table {
-    font-size: 13px;
+    font-size: 14px; /* Increased slightly for better legibility */
   }
 }

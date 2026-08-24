@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { ConfigProvider } from "antd";
+import AntdProvider from "@/providers/AntdProvider";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
-const inter = Inter({ 
+const plusJakartaSans = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter", // Add CSS variable
+  variable: "--font-plus-jakarta",
 });
 
 export const metadata: Metadata = {
   title: "ATeens Dashboard",
-  description: "Welcome to ATeens Dashboard",
+  description: "Management dashboard for ATeens",
 };
 
-// Required for iOS safe-area (notch / home indicator support)
 export const viewport = {
   width: "device-width",
   initialScale: 1,
@@ -28,28 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className={`${inter.className} font-inter`}>
-        <ConfigProvider
-          theme={{
-            token: {
-              fontFamily: `var(--font-inter), ${inter.style.fontFamily}, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif`,
-            },
-            components: {
-              Typography: {
-                fontFamily: `var(--font-inter), ${inter.style.fontFamily}, sans-serif`,
-              },
-              Input: {
-                fontFamily: `var(--font-inter), ${inter.style.fontFamily}, sans-serif`,
-              },
-              Button: {
-                fontFamily: `var(--font-inter), ${inter.style.fontFamily}, sans-serif`,
-              },
-            },
-          }}
-        >
-          <AuthProvider>{children}</AuthProvider>
-        </ConfigProvider>
+    <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
+      <body className={`${plusJakartaSans.className} font-sans antialiased bg-[var(--background)] text-[var(--foreground)]`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AntdProvider fontFamily={`var(--font-plus-jakarta), ${plusJakartaSans.style.fontFamily}, sans-serif`}>
+            <AuthProvider>{children}</AuthProvider>
+          </AntdProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

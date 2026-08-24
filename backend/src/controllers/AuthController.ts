@@ -1,13 +1,13 @@
 import { Controller, Post, Get, Put, Middleware, Delete } from "@overnightjs/core";
 import { Request, Response } from "express";
-import * as bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
-import { User, Role } from "../models";
+import { validate } from "../middleware/validate";
+import { registerSchema, loginSchema, approveUserSchema } from "../validators/auth.validator";
+import { AuthService } from "../services/AuthService";
+import { Role } from "../models";
 import {
   PERMISSIONS,
-  getPermissionsForRoles,
 } from "../types";
 import type {
   AuthenticatedRequest,
@@ -17,15 +17,9 @@ import type {
 } from "../types";
 
 const COOKIE_NAME = "authToken";
-const TOKEN_EXPIRY = "8h";
 const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
 
 function setCookieToken(res: Response, token: string): void {
-  // Do NOT set an explicit `domain` — let the browser derive it from the
-  // request's Host header. Since the Next.js rewrite proxies all API calls
-  // through atmosphereteens.my.id, the cookie is stored as same-origin,
-  // which is fully compatible with Safari iOS (no ITP blocking).
-  // SameSite=Lax is sufficient and more secure than None for same-origin cookies.
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
@@ -36,8 +30,6 @@ function setCookieToken(res: Response, token: string): void {
 }
 
 function clearCookieToken(res: Response): void {
-  // Options must match setCookieToken exactly (except maxAge) for the
-  // browser to correctly identify and clear the cookie.
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: true,
@@ -49,115 +41,35 @@ function clearCookieToken(res: Response): void {
 @Controller("api/auth")
 export class AuthController {
   @Post("register")
+  @Middleware([validate(registerSchema)])
   private async register(req: Request, res: Response): Promise<any> {
-    const { username, password, dob, accountType, gender, grade } =
-      req.body as RegisterRequestBody;
-
-    if (!username || !password || !dob || !accountType) {
-      return res.status(400).json({
-        error: "Username, password, date of birth, and account type are required",
-      });
-    }
-
-    if (accountType === "leader" && (!gender || !grade)) {
-      return res.status(400).json({
-        error: "Gender and grade are required for leader accounts",
-      });
-    }
+    const data = req.body as RegisterRequestBody;
 
     try {
-      const existing = await User.findOne({ where: { username } });
-      if (existing) {
-        return res.status(409).json({ error: "Username is already taken" });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      await User.create({
-        username,
-        password: hashedPassword,
-        status: "pending",
-        gender,
-        grade,
-        dob,
-      });
-
+      await AuthService.registerUser(data);
       res.status(201).json({ message: "Registration successful, pending approval." });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Register error:", err);
+      if (err.message === "Username is already taken") {
+        return res.status(409).json({ error: err.message });
+      }
       res.status(500).json({ error: "Failed to register user" });
     }
   }
 
   @Post("login")
+  @Middleware([validate(loginSchema)])
   private async login(req: Request, res: Response): Promise<any> {
-    const { username, password } = req.body as LoginRequestBody;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required" });
-    }
+    const data = req.body as LoginRequestBody;
 
     try {
-      const user = await User.findOne({
-        where: { username },
-        include: [
-          {
-            model: Role,
-            as: "roles",
-            attributes: ["name"],
-            through: { attributes: [] },
-          },
-        ],
-      });
-
-      if (!user) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-
-      if (user.status !== "approved") {
-        return res.status(403).json({
-          error: "Your account has not been approved yet.",
-        });
-      }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-
-      const roleNames = user.roles?.map((r) => r.name) ?? [];
-      const permissions = getPermissionsForRoles(roleNames);
-
-      const payload = {
-        userId: user.id,
-        username: user.username,
-        name: user.username,
-        roles: roleNames,
-        permissions,
-        gender: user.gender,
-        grade: user.grade,
-      };
-
-      const token = jwt.sign(payload, process.env.JWT_SECRET!, {
-        expiresIn: TOKEN_EXPIRY,
-      });
-
+      const { token, user } = await AuthService.loginUser(data);
       setCookieToken(res, token);
-
-      const userResponse: UserResponse = {
-        id: user.id,
-        username: user.username,
-        name: user.username,
-        roles: roleNames,
-        permissions,
-        gender: user.gender,
-        grade: user.grade,
-      };
-
-      res.json({ message: "Login successful", user: userResponse });
-    } catch (err) {
+      res.json({ message: "Login successful", user });
+    } catch (err: any) {
       console.error("Login error:", err);
-      res.status(500).json({ error: "Login failed" });
+      const status = err.message.includes("approved") ? 403 : 401;
+      res.status(status).json({ error: err.message || "Login failed" });
     }
   }
 
@@ -189,10 +101,7 @@ export class AuthController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_VIEW)])
   private async getPendingUsers(_req: AuthenticatedRequest, res: Response) {
     try {
-      const pendingUsers = await User.findAll({
-        where: { status: "pending" },
-        attributes: ["id", "username", "status", "createdAt"],
-      });
+      const pendingUsers = await AuthService.getPendingUsers();
       res.json(pendingUsers);
     } catch (err) {
       console.error("Fetch pending users error:", err);
@@ -213,24 +122,17 @@ export class AuthController {
   }
 
   @Put("approve/:id")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE), validate(approveUserSchema)])
   private async approveUser(req: AuthenticatedRequest, res: Response): Promise<any> {
     const { id } = req.params;
     const { roleIds } = req.body;
 
     try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      user.status = "approved";
-      await user.save();
-      await (user as any).setRoles(roleIds);
-
+      const user = await AuthService.approveUser(parseInt(id, 10), roleIds);
       res.json({ message: `User ${user.username} has been approved.` });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Approve user error:", err);
+      if (err.message === "User not found") return res.status(404).json({ error: err.message });
       res.status(500).json({ error: "Failed to approve user" });
     }
   }
@@ -241,21 +143,12 @@ export class AuthController {
     const { id } = req.params;
 
     try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      if (user.status !== "pending") {
-        return res.status(400).json({ error: "User is not in a pending state." });
-      }
-
-      const { username } = user;
-      await user.destroy();
-
+      const username = await AuthService.rejectUser(parseInt(id, 10));
       res.json({ message: `Registration for '${username}' has been rejected.` });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Reject user error:", err);
+      if (err.message === "User not found") return res.status(404).json({ error: err.message });
+      if (err.message.includes("pending state")) return res.status(400).json({ error: err.message });
       res.status(500).json({ error: "Failed to reject user" });
     }
   }

@@ -1,6 +1,13 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
 import Role from "./Role";
+import Member from "./Member";
+
+import {
+  HasManyGetAssociationsMixin,
+  HasManyAddAssociationMixin,
+  HasManyAddAssociationsMixin,
+} from "sequelize";
 
 class User extends Model {
   public id!: number;
@@ -10,6 +17,11 @@ class User extends Model {
   public grade!: number;
   public gender!: "Laki-Laki" | "Perempuan";
   public readonly roles?: Role[];
+  public readonly members?: Member[];
+
+  public getMembers!: HasManyGetAssociationsMixin<Member>;
+  public addMember!: HasManyAddAssociationMixin<Member, number>;
+  public addMembers!: HasManyAddAssociationsMixin<Member, number>;
 }
 
 User.init(

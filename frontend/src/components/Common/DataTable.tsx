@@ -7,7 +7,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 interface DataTableProps<T> {
   columns: ColumnsType<T>;
   dataSource?: T[];
-  fetchFn?: () => Promise<T[]>;
   rowKey: string;
   loading?: boolean;
   bordered?: boolean;
@@ -18,34 +17,12 @@ interface DataTableProps<T> {
   title?: string;
 }
 
-export function useTableData<T>(fetchFn: () => Promise<T[]>) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      setData(await fetchFn());
-    } catch {
-      message.error("Failed to fetch data.");
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchFn]);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  return { data, loading, refresh, setData };
-}
 
 export default function DataTable<T extends object>({
   columns,
   dataSource,
-  fetchFn,
   rowKey,
-  loading: externalLoading,
+  loading = false,
   bordered = true,
   size = "middle",
   scroll,
@@ -53,57 +30,30 @@ export default function DataTable<T extends object>({
   toolbar,
   title,
 }: DataTableProps<T>) {
-  const internal = useSelfFetch<T>(fetchFn);
-
-  const resolvedData = fetchFn ? internal.data : dataSource ?? [];
-  const resolvedLoading = fetchFn ? internal.loading : externalLoading ?? false;
 
   return (
     <div>
       {(title || toolbar) && (
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
-          {title && <h1 className="text-xl sm:text-2xl font-bold">{title}</h1>}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 gap-4 sm:gap-0">
+          {title && <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{title}</h1>}
           {toolbar}
         </div>
       )}
-      <div className="bg-white rounded-lg shadow-sm">
-        <Table
+      <div className="rounded-[2rem] p-1.5 ring-1 ring-black/5 dark:ring-white/10 bg-white/50 dark:bg-black/20 backdrop-blur-3xl">
+        <div className="bg-white dark:bg-[#050505] rounded-[calc(2rem-0.375rem)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] overflow-hidden">
+          <Table
           columns={columns}
-          dataSource={resolvedData as T[]}
-          loading={resolvedLoading}
+          dataSource={dataSource ?? []}
+          loading={loading}
           rowKey={rowKey}
           bordered={bordered}
           size={size}
           scroll={scroll}
           pagination={pagination}
         />
+        </div>
       </div>
     </div>
   );
 }
 
-function useSelfFetch<T>(fetchFn?: () => Promise<T[]>) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!fetchFn) return;
-    let cancelled = false;
-    setLoading(true);
-    fetchFn()
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .catch(() => {
-        if (!cancelled) message.error("Failed to fetch data.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchFn]);
-
-  return { data, loading };
-}

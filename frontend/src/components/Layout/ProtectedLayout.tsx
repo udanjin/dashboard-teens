@@ -44,7 +44,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-transparent relative z-10">
       <DashboardSidebar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
@@ -63,7 +63,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
           onLogout={logout}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="px-3 sm:px-6 pb-6 pt-20 overflow-x-hidden">{children}</main>
+        <main className="px-4 sm:px-8 pb-8 pt-24 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

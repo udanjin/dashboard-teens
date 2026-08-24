@@ -1,8 +1,10 @@
 import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
 import { Request, Response } from "express";
-import SportReport from "../models/SportReport";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
+import { validate } from "../middleware/validate";
+import { sportReportSchema, updateSportReportSchema } from "../validators/sportReport.validator";
+import { SportReportService } from "../services/SportReportService";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 
@@ -12,7 +14,7 @@ export class SportReportController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_VIEW)])
   private async getAllReports(_req: AuthenticatedRequest, res: Response) {
     try {
-      const reports = await SportReport.findAll();
+      const reports = await SportReportService.getAllReports();
       res.json(reports);
     } catch (err) {
       console.error("Fetch reports error:", err);
@@ -24,9 +26,8 @@ export class SportReportController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_VIEW)])
   private async getCash(_req: AuthenticatedRequest, res: Response) {
     try {
-      const totalPemasukan = (await SportReport.sum("totalPemasukan")) || 0;
-      const totalPengeluaran = (await SportReport.sum("totalPengeluaran")) || 0;
-      res.json(totalPemasukan - totalPengeluaran);
+      const balance = await SportReportService.getCashBalance();
+      res.json(balance);
     } catch (err) {
       console.error("Cash balance error:", err);
       res.status(500).json({ error: "Failed to calculate cash balance" });
@@ -34,10 +35,10 @@ export class SportReportController {
   }
 
   @Post("")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE), validate(sportReportSchema)])
   private async createReport(req: AuthenticatedRequest, res: Response) {
     try {
-      const report = await SportReport.create(req.body);
+      const report = await SportReportService.createReport(req.body);
       res.status(201).json(report);
     } catch (err) {
       console.error("Create report error:", err);
@@ -46,20 +47,16 @@ export class SportReportController {
   }
 
   @Put(":id")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE), validate(updateSportReportSchema)])
   private async updateReport(req: AuthenticatedRequest, res: Response): Promise<any> {
     const { id } = req.params;
 
     try {
-      const report = await SportReport.findByPk(id);
-      if (!report) {
-        return res.status(404).json({ error: "Sport report not found" });
-      }
-
-      const updated = await report.update(req.body);
+      const updated = await SportReportService.updateReport(parseInt(id, 10), req.body);
       res.json(updated);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Update report error:", err);
+      if (err.message === "Sport report not found") return res.status(404).json({ error: err.message });
       res.status(400).json({ error: "Failed to update report" });
     }
   }
@@ -70,15 +67,11 @@ export class SportReportController {
     const { id } = req.params;
 
     try {
-      const report = await SportReport.findByPk(id);
-      if (!report) {
-        return res.status(404).json({ error: "Sport report not found" });
-      }
-
-      await report.destroy();
+      await SportReportService.deleteReport(parseInt(id, 10));
       res.json({ message: "Report deleted successfully" });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Delete report error:", err);
+      if (err.message === "Sport report not found") return res.status(404).json({ error: err.message });
       res.status(400).json({ error: "Failed to delete report" });
     }
   }

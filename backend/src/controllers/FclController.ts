@@ -3,82 +3,37 @@ import { Request, Response } from "express";
 import { User, Member, Role, Attendance, PERMISSIONS } from "../models";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
+import { validate } from "../middleware/validate";
+import { addMembersSchema, editMemberSchema } from "../validators/fcl.validator";
+import { FclService } from "../services/FclService";
 import sequelize from "../config/db";
 import { Op, Sequelize } from "sequelize";
 import dayjs from "dayjs";
 import type { AuthenticatedRequest } from "../types";
-import { normalizePhoneNumber } from "../utils/phone.util";
 
 @Controller("api/fcl")
 export class FclController {
   @Post("members")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS), validate(addMembersSchema)])
   private async addMembers(req: AuthenticatedRequest, res: Response): Promise<any> {
     const { membersData } = req.body;
     const leaderId = req.user?.userId;
 
-    if (!Array.isArray(membersData) || membersData.length === 0) {
-      return res.status(400).json({ error: "Member data is required" });
-    }
     if (!leaderId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const transaction = await sequelize.transaction();
     try {
-      const leader = await User.findByPk(leaderId);
-      if (!leader) {
-        await transaction.rollback();
-        return res.status(404).json({ error: "Leader not found" });
-      }
-
-      for (const memberInfo of membersData) {
-        if (!memberInfo.name || !memberInfo.grade || !memberInfo.gender || !memberInfo.dob) {
-          throw new Error(`Invalid data for member: ${JSON.stringify(memberInfo)}`);
-        }
-
-        const existing = await (leader as any).getMembers({
-          where: { name: memberInfo.name },
-          transaction,
-        });
-
-        if (existing.length > 0) {
-          await transaction.rollback();
-          return res.status(409).json({
-            error: `Member "${memberInfo.name}" already exists for this leader.`,
-          });
-        }
-
-        const gradeNum = parseInt(memberInfo.grade, 10);
-        if (isNaN(gradeNum)) {
-          throw new Error(`Grade must be a valid number for member: ${memberInfo.name}`);
-        }
-        let validPhoneNumber = null;
-        if (memberInfo.phoneNumber) {
-          validPhoneNumber = normalizePhoneNumber(memberInfo.phoneNumber);
-        }
-        if (!validPhoneNumber) {
-          await transaction.rollback()
-          return res.status(400).json({ error: `Format Phone Number of ${memberInfo.name} is invalid` });
-        }
-        const newMember = await Member.create(
-          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob, phoneNumber: validPhoneNumber },
-          { transaction },
-        );
-        await (leader as any).addMember(newMember, { transaction });
-      }
-
-      await transaction.commit();
-      res.status(201).json({ message: `${membersData.length} members added successfully` });
+      const members = await FclService.addMembers(leaderId, membersData);
+      res.status(201).json({ message: `${members.length} members added successfully` });
     } catch (error: any) {
-      await transaction.rollback();
       console.error("Add members error:", error);
-      res.status(500).json({ error: error.message || "Failed to add members" });
+      res.status(400).json({ error: error.message || "Failed to add members" });
     }
   }
 
   @Put("members/:id")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS), validate(editMemberSchema)])
   private async editMember(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { id } = req.params;
@@ -88,43 +43,12 @@ export class FclController {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    if (!name && !dob && !phoneNumber) {
-      return res.status(400).json({ error: "At least one of name or date of birth or phone number is required" });
-    }
-
     try {
-      // Verify the member belongs to this leader
-      const leader = await User.findByPk(leaderId, {
-        include: [{ model: Member, as: "members", where: { id }, required: false }],
-      });
-
-      if (!leader) {
-        return res.status(404).json({ error: "Leader not found" });
-      }
-
-      const ownedMembers = (leader as any).members ?? [];
-      if (ownedMembers.length === 0) {
-        return res.status(403).json({ error: "You do not have permission to edit this member" });
-      }
-
-      const member = await Member.findByPk(id);
-      if (!member) {
-        return res.status(404).json({ error: "Member not found" });
-      }
-      let validPhoneNumber = undefined;
-      if (name) member.name = name;
-      if (dob) member.dob = dob;
-      if (phoneNumber) validPhoneNumber = normalizePhoneNumber(phoneNumber);
-      if (!validPhoneNumber) {
-        return res.status(400).json({ error: `Format Phone Number of ${member.name} is invalid` });
-      }
-      member.phoneNumber = validPhoneNumber;
-      await member.save();
-
-      res.json({ message: "Member updated successfully", member: { id: member.id, name: member.name, dob: member.dob, phoneNumber: member.phoneNumber } });
-    } catch (err) {
-      console.error("Edit member error:", err);
-      res.status(500).json({ error: "Failed to update member" });
+      const member = await FclService.editMember(leaderId, parseInt(id, 10), { name, dob, phoneNumber });
+      res.json({ message: "Member updated successfully", member });
+    } catch (error: any) {
+      console.error("Edit member error:", error);
+      res.status(400).json({ error: error.message || "Failed to update member" });
     }
   }
 

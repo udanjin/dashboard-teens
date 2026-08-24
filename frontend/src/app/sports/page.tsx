@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { useModal } from "@/stores/modalStore";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { sportsService } from "@/services";
-import { useTableData } from "@/components/Common/DataTable";
+import { useTableData } from "@/hooks/useTableData";
 import DataTable from "@/components/Common/DataTable";
 import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import SportsEventForm from "@/components/Sports/SportsEventForm";

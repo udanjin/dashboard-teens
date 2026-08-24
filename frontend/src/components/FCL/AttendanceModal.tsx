@@ -18,7 +18,14 @@ function AttendanceButton({ status, onClick, disabled }: { status: number | null
   const c = status !== null ? config[status as number] : null;
 
   return (
-    <Button onClick={onClick} type={c?.type ?? "default"} danger={c?.danger ?? false} size="small" disabled={disabled}>
+    <Button 
+      onClick={onClick} 
+      type={c?.type ?? "default"} 
+      danger={c?.danger ?? false} 
+      size="middle" 
+      disabled={disabled}
+      className="min-w-[80px] min-h-[40px]"
+    >
       {c?.text ?? "Unmarked"}
     </Button>
   );
@@ -141,12 +148,14 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
 
   return (
     <Modal
-      title="Take Attendance"
+      title={<span className="text-xl font-semibold">Take Attendance</span>}
       open={open}
       onCancel={onClose}
       onOk={handleSubmit}
-      width={1000}
+      width="100%"
+      style={{ maxWidth: 1000, top: 20 }}
       confirmLoading={loading}
+      className="md:min-w-[700px]"
     >
       <div className="flex items-center gap-4 mb-4">
         <Text>Month:</Text>

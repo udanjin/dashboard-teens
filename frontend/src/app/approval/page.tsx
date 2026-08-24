@@ -6,7 +6,7 @@ import type { ColumnsType } from "antd/es/table";
 import { useModal } from "@/stores/modalStore";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { userService } from "@/services";
-import { useTableData } from "@/components/Common/DataTable";
+import { useTableData } from "@/hooks/useTableData";
 import DataTable from "@/components/Common/DataTable";
 import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import DynamicForm, { type FieldConfig, type FieldOption } from "@/components/Common/DynamicForm";
@@ -126,7 +126,7 @@ export default function AdminApprovalPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 sm:p-12 w-full min-h-[100dvh] relative overflow-hidden bg-[#FDFBF7] dark:bg-[#050505]">
       <DataTable
         title="Pending User Registrations"
         columns={columns}

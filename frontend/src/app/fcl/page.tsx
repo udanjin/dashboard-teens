@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useModal } from "@/stores/modalStore";
 import { fclService, attendanceService } from "@/services";
-import { useTableData } from "@/components/Common/DataTable";
+import { useTableData } from "@/hooks/useTableData";
 import DataTable from "@/components/Common/DataTable";
 import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import AddMemberForm from "@/components/FCL/AddMemberForm";
@@ -140,31 +140,39 @@ export default function FclPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-        <div>
-          <Title level={2} className="mb-0">FCL Management</Title>
-          <Text strong>Name: {user?.username}</Text>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-8 gap-6 border-b border-zinc-800/50 pb-6">
+        <div className="space-y-1">
+          <Title level={2} className="!mb-0 !font-bold tracking-tight">FCL Management</Title>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-gray-400 text-sm">
+            <Text className="text-gray-400">Leader: <span className="text-gray-200">{user?.username}</span></Text>
           {!isAdmin && (
-            <div className="flex flex-col">
-              <Text strong>Grade: {user?.grade}</Text>
-              <Text strong>Gender: {user?.gender}</Text>
-            </div>
+            <>
+              <Text className="hidden sm:inline text-gray-600">•</Text>
+              <Text className="text-gray-400">Grade: <span className="text-gray-200">{user?.grade}</span></Text>
+              <Text className="hidden sm:inline text-gray-600">•</Text>
+              <Text className="text-gray-400">Gender: <span className="text-gray-200">{user?.gender}</span></Text>
+            </>
           )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <DatePicker picker="month" value={statsDate} onChange={(d) => d && setStatsDate(d)} className="w-36 shrink-0" />
-          <Input placeholder="Search Member" prefix={<SearchOutlined />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-40 shrink-0" />
-          {canTakeAttendance && (
-            <Button onClick={attendanceModal.open} className="shrink-0">Take Attendance</Button>
-          )}
-          {canManageMembers && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={addMemberModal.open} className="shrink-0">Add Member</Button>
-          )}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <DatePicker picker="month" value={statsDate} onChange={(d) => d && setStatsDate(d)} className="w-full sm:w-36 shrink-0" />
+          <Input placeholder="Search Member" prefix={<SearchOutlined className="text-gray-400" />} value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full sm:w-48 shrink-0" />
+          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+            {canTakeAttendance && (
+              <Button onClick={attendanceModal.open} className="flex-1 sm:flex-none justify-center">Take Attendance</Button>
+            )}
+            {canManageMembers && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={addMemberModal.open} className="flex-1 sm:flex-none justify-center bg-violet-600 hover:bg-violet-500 border-none">Add Member</Button>
+            )}
+          </div>
         </div>
       </div>
 
-      <DataTable columns={columns} dataSource={filteredMembers} loading={loading} rowKey="id" />
+      <div className="bg-[#121212] rounded-xl border border-zinc-800/50 overflow-hidden shadow-2xl">
+        <DataTable columns={columns} dataSource={filteredMembers} loading={loading} rowKey="id" scroll={{ x: 'max-content' }} />
+      </div>
 
       <GlobalFormModal
         title="Add New Members"

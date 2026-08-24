@@ -1,172 +1,70 @@
 import { Controller, Get, Middleware, Post } from "@overnightjs/core";
 import { Response } from "express";
-import User from "../models/User";
-import Member from "../models/Member";
-import Attendance from "../models/Attendance";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
+import { validate } from "../middleware/validate";
+import { getSheetSchema, submitAttendanceSchema, getSingleAttendanceSchema } from "../validators/attendance.validator";
+import { AttendanceService } from "../services/AttendanceService";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
-import { Op, Sequelize } from "sequelize";
-import sequelize from "../config/db";
-import dayjs from "dayjs";
 
 @Controller("api/attendance")
 export class AttendanceController {
   @Get("sheet")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW), validate(getSheetSchema)])
   private async getAttendanceSheet(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
-    const { date } = req.query;
+    const { date } = req.query as { date: string };
 
-    if (!leaderId || !date || typeof date !== "string") {
-      return res.status(400).json({ error: "Leader ID and date are required" });
+    if (!leaderId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
-      const leader = await User.findByPk(leaderId, {
-        include: [{ model: Member, as: "members", attributes: ["id", "name"] }],
-      });
-
-      if (!leader) return res.status(404).json({ error: "Leader not found" });
-
-      const members = (leader as any).members || [];
-      const memberIds = members.map((m: Member) => m.id);
-
-      const existingAttendances = await Attendance.findAll({
-        where: { memberId: { [Op.in]: memberIds }, leaderId, date },
-      });
-
-      const attendanceSheet = members.map((member: Member) => {
-        const record = existingAttendances.find((a) => a.memberId === member.id);
-        return {
-          memberId: member.id,
-          name: member.name,
-          status: record ? record.status : null,
-        };
-      });
-
+      const attendanceSheet = await AttendanceService.getSheet(leaderId, date);
       res.json(attendanceSheet);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Attendance sheet error:", err);
+      if (err.message === "Leader not found") return res.status(404).json({ error: err.message });
       res.status(500).json({ error: "Failed to fetch attendance sheet" });
     }
   }
 
   @Post("")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_MANAGE)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_MANAGE), validate(submitAttendanceSchema)])
   private async submitAttendance(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
     const { date, attendances } = req.body;
 
-    if (!leaderId || !date || !Array.isArray(attendances)) {
-      return res.status(400).json({ error: "Invalid payload" });
+    if (!leaderId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const transaction = await sequelize.transaction();
-
     try {
-      const toDelete = attendances
-        .filter((att: any) => att.status === null)
-        .map((att: any) => att.memberId);
-
-      const toUpsert = attendances
-        .filter((att: any) => att.status !== null)
-        .map((att: any) => ({
-          leaderId,
-          memberId: att.memberId,
-          date,
-          status: att.status,
-        }));
-
-      if (toDelete.length > 0) {
-        await Attendance.destroy({
-          where: { leaderId, date, memberId: { [Op.in]: toDelete } },
-          transaction,
-        });
-      }
-
-      if (toUpsert.length > 0) {
-        await Attendance.bulkCreate(toUpsert, {
-          updateOnDuplicate: ["status"],
-          transaction,
-        });
-      }
-
-      await transaction.commit();
+      await AttendanceService.submitAttendance(leaderId, date, attendances);
       res.json({ message: "Attendance submitted successfully" });
     } catch (err) {
-      await transaction.rollback();
       console.error("Submit attendance error:", err);
       res.status(500).json({ error: "Failed to submit attendance" });
     }
   }
 
   @Get("single-attendance")
-  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW), validate(getSingleAttendanceSchema)])
   private async getAllAttendance(req: AuthenticatedRequest, res: Response): Promise<any> {
     const leaderId = req.user?.userId;
-    const { month, year } = req.query;
+    const { month, year } = req.query as { month: string, year: string };
 
-    if (!leaderId || !month || !year) {
-      return res.status(400).json({ error: "Leader ID, month and year are required" });
+    if (!leaderId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
-      const startDate = dayjs(`${year}-${month}-01`).startOf("month");
-      const endDate = startDate.endOf("month");
-
-      const leader = await User.findByPk(leaderId, {
-        include: [{ model: Member, as: "members", attributes: ["id", "name"] }],
-      });
-
-      if (!leader) return res.status(404).json({ error: "Leader not found" });
-
-      const members = (leader as any).members || [];
-      if (members.length === 0) return res.json({ memberStats: [] });
-
-      const memberIds = members.map((m: Member) => m.id);
-
-      const attendanceCount = await Attendance.findAll({
-        attributes: [
-          "memberId",
-          "status",
-          [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
-        ],
-        where: {
-          leaderId,
-          memberId: { [Op.in]: memberIds },
-          status: { [Op.in]: [0, 1] },
-          date: {
-            [Op.between]: [
-              startDate.format("YYYY-MM-DD"),
-              endDate.format("YYYY-MM-DD"),
-            ],
-          },
-        },
-        group: ["memberId", "status"],
-        raw: true,
-      });
-
-      const memberStats = members.map((member: Member) => {
-        let presentCount = 0;
-        let absentCount = 0;
-
-        const records = (attendanceCount as any[]).filter(
-          (p) => p.memberId === member.id,
-        );
-
-        records.forEach((record) => {
-          if (record.status === 0) presentCount = parseInt(record.count, 10);
-          else if (record.status === 1) absentCount = parseInt(record.count, 10);
-        });
-
-        return { memberId: member.id, name: member.name, presentCount, absentCount };
-      });
-
+      const memberStats = await AttendanceService.getSingleAttendance(leaderId, month, year);
       res.json({ memberStats });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Single attendance error:", err);
+      if (err.message === "Leader not found") return res.status(404).json({ error: err.message });
       res.status(500).json({ error: "Failed to calculate attendance" });
     }
   }
