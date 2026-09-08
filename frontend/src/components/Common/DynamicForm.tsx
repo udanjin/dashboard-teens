@@ -45,6 +45,7 @@ export interface FieldOption {
 export interface FieldConfig<T = any> {
   name: keyof T | string;
   label: string;
+  extra?: ReactNode;
   rules?: Rule[];
   componentType: FieldType;
   options?: FieldOption[];
@@ -247,6 +248,7 @@ export default function DynamicForm<T = any>({
                   key={String(field.name)}
                   name={field.name as string}
                   label={field.label}
+                  extra={field.extra}
                   rules={field.rules}
                   valuePropName={
                     field.componentType === "switch" ? "checked" : field.valuePropName

@@ -45,6 +45,7 @@ export default function RegisterPage() {
         {
           name: "requestedRoles",
           label: "Ministry Roles",
+          extra: "you can choose 1 or more roles",
           componentType: "select",
           options: MINISTRY_ROLES,
           placeholder: "Select your intended ministry roles",
