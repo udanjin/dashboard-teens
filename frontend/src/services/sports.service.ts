@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
-import type { SportReportApiResponse, SportReportPayload, SportEvent } from "@/types";
+import type { SportReportApiResponse, SportReportPayload, SportEvent, SportReportKpis, SportReportApiResponseWrapper } from "@/types";
 
 function mapApiResponseToEvent(item: SportReportApiResponse, index: number): SportEvent {
   return {
@@ -26,9 +26,16 @@ function mapApiResponseToEvent(item: SportReportApiResponse, index: number): Spo
 }
 
 export const sportsService = {
-  async getAll(): Promise<SportEvent[]> {
-    const res = await axiosInstance.get<SportReportApiResponse[]>("/sport-reports");
-    return res.data.map(mapApiResponseToEvent);
+  async getAll(params?: Record<string, any>): Promise<{ data: SportEvent[], kpis: SportReportKpis }> {
+    const res = await axiosInstance.get<SportReportApiResponseWrapper>("/sport-reports", { params });
+    return {
+      data: res.data.data.map(mapApiResponseToEvent),
+      kpis: res.data.kpis
+    };
+  },
+
+  getVenues() {
+    return axiosInstance.get<string[]>("/sport-reports/venues").then((res) => res.data);
   },
 
   create(payload: SportReportPayload) {

@@ -1,8 +1,9 @@
 import { Controller, Delete, Get, Middleware, Post, Put } from "@overnightjs/core";
-import { Request, Response } from "express";
-import SportReport from "../models/SportReport";
+import { Response, NextFunction } from "express";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
+import { SportReportService } from "../services/SportReportService";
+import { getSportReportsSchema, createSportReportSchema, updateSportReportSchema } from "../dtos/SportReport.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 
@@ -10,76 +11,76 @@ import type { AuthenticatedRequest } from "../types";
 export class SportReportController {
   @Get("")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_VIEW)])
-  private async getAllReports(_req: AuthenticatedRequest, res: Response) {
+  private async getAllReports(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const reports = await SportReport.findAll();
-      res.json(reports);
+      const filters = getSportReportsSchema.parse(req.query);
+      const result = await SportReportService.getAllReports(filters);
+      res.json(result);
     } catch (err) {
-      console.error("Fetch reports error:", err);
-      res.status(500).json({ error: "Failed to fetch sport reports" });
+      next(err);
     }
   }
 
+  @Get("venues")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_VIEW)])
+  private async getVenues(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const venues = await SportReportService.getUniqueVenues();
+      res.json(venues);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // The separate cash-balance endpoint is no longer strictly needed since KPIs are returned in getAllReports,
+  // but we can keep it around if other parts of the app rely on it.
   @Get("cash-balance")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_VIEW)])
-  private async getCash(_req: AuthenticatedRequest, res: Response) {
+  private async getCash(_req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const totalPemasukan = (await SportReport.sum("totalPemasukan")) || 0;
-      const totalPengeluaran = (await SportReport.sum("totalPengeluaran")) || 0;
-      res.json(totalPemasukan - totalPengeluaran);
+      // Just reuse the service method with empty filters
+      const result = await SportReportService.getAllReports({});
+      res.json(result.kpis.netBalance);
     } catch (err) {
-      console.error("Cash balance error:", err);
-      res.status(500).json({ error: "Failed to calculate cash balance" });
+      next(err);
     }
   }
 
   @Post("")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
-  private async createReport(req: AuthenticatedRequest, res: Response) {
+  private async createReport(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const report = await SportReport.create(req.body);
+      const data = createSportReportSchema.parse(req.body);
+      const report = await SportReportService.createReport(data);
       res.status(201).json(report);
     } catch (err) {
-      console.error("Create report error:", err);
-      res.status(400).json({ error: "Failed to create sport report" });
+      next(err);
     }
   }
 
   @Put(":id")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
-  private async updateReport(req: AuthenticatedRequest, res: Response): Promise<any> {
-    const { id } = req.params;
-
+  private async updateReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const report = await SportReport.findByPk(id);
-      if (!report) {
-        return res.status(404).json({ error: "Sport report not found" });
-      }
-
-      const updated = await report.update(req.body);
+      const id = parseInt(req.params.id, 10);
+      const data = updateSportReportSchema.parse(req.body);
+      const updated = await SportReportService.updateReport(id, data);
       res.json(updated);
     } catch (err) {
-      console.error("Update report error:", err);
-      res.status(400).json({ error: "Failed to update report" });
+      next(err);
     }
   }
 
   @Delete(":id")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
-  private async deleteReport(req: AuthenticatedRequest, res: Response): Promise<any> {
-    const { id } = req.params;
-
+  private async deleteReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const report = await SportReport.findByPk(id);
-      if (!report) {
-        return res.status(404).json({ error: "Sport report not found" });
-      }
-
-      await report.destroy();
+      const id = parseInt(req.params.id, 10);
+      await SportReportService.deleteReport(id);
       res.json({ message: "Report deleted successfully" });
     } catch (err) {
-      console.error("Delete report error:", err);
-      res.status(400).json({ error: "Failed to delete report" });
+      next(err);
     }
   }
 }
+

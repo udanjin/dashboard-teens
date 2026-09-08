@@ -1,31 +1,16 @@
 import { Controller, Post, Get, Put, Middleware, Delete } from "@overnightjs/core";
-import { Request, Response } from "express";
-import * as bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
-import { User, Role } from "../models";
-import {
-  PERMISSIONS,
-  getPermissionsForRoles,
-} from "../types";
-import type {
-  AuthenticatedRequest,
-  LoginRequestBody,
-  RegisterRequestBody,
-  UserResponse,
-} from "../types";
+import { AuthService } from "../services/AuthService";
+import { registerSchema, loginSchema, approveUserSchema } from "../dtos/Auth.dto";
+import { PERMISSIONS } from "../types";
+import type { AuthenticatedRequest } from "../types";
 
 const COOKIE_NAME = "authToken";
-const TOKEN_EXPIRY = "8h";
 const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
 
 function setCookieToken(res: Response, token: string): void {
-  // Do NOT set an explicit `domain` — let the browser derive it from the
-  // request's Host header. Since the Next.js rewrite proxies all API calls
-  // through atmosphereteens.my.id, the cookie is stored as same-origin,
-  // which is fully compatible with Safari iOS (no ITP blocking).
-  // SameSite=Lax is sufficient and more secure than None for same-origin cookies.
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: true,
@@ -36,8 +21,6 @@ function setCookieToken(res: Response, token: string): void {
 }
 
 function clearCookieToken(res: Response): void {
-  // Options must match setCookieToken exactly (except maxAge) for the
-  // browser to correctly identify and clear the cookie.
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     secure: true,
@@ -49,115 +32,25 @@ function clearCookieToken(res: Response): void {
 @Controller("api/auth")
 export class AuthController {
   @Post("register")
-  private async register(req: Request, res: Response): Promise<any> {
-    const { username, password, dob, accountType, gender, grade } =
-      req.body as RegisterRequestBody;
-
-    if (!username || !password || !dob || !accountType) {
-      return res.status(400).json({
-        error: "Username, password, date of birth, and account type are required",
-      });
-    }
-
-    if (accountType === "leader" && (!gender || !grade)) {
-      return res.status(400).json({
-        error: "Gender and grade are required for leader accounts",
-      });
-    }
-
+  private async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const existing = await User.findOne({ where: { username } });
-      if (existing) {
-        return res.status(409).json({ error: "Username is already taken" });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      await User.create({
-        username,
-        password: hashedPassword,
-        status: "pending",
-        gender,
-        grade,
-        dob,
-      });
-
+      const data = registerSchema.parse(req.body);
+      await AuthService.register(data);
       res.status(201).json({ message: "Registration successful, pending approval." });
     } catch (err) {
-      console.error("Register error:", err);
-      res.status(500).json({ error: "Failed to register user" });
+      next(err);
     }
   }
 
   @Post("login")
-  private async login(req: Request, res: Response): Promise<any> {
-    const { username, password } = req.body as LoginRequestBody;
-
-    if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required" });
-    }
-
+  private async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await User.findOne({
-        where: { username },
-        include: [
-          {
-            model: Role,
-            as: "roles",
-            attributes: ["name"],
-            through: { attributes: [] },
-          },
-        ],
-      });
-
-      if (!user) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-
-      if (user.status !== "approved") {
-        return res.status(403).json({
-          error: "Your account has not been approved yet.",
-        });
-      }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        return res.status(401).json({ error: "Invalid username or password" });
-      }
-
-      const roleNames = user.roles?.map((r) => r.name) ?? [];
-      const permissions = getPermissionsForRoles(roleNames);
-
-      const payload = {
-        userId: user.id,
-        username: user.username,
-        name: user.username,
-        roles: roleNames,
-        permissions,
-        gender: user.gender,
-        grade: user.grade,
-      };
-
-      const token = jwt.sign(payload, process.env.JWT_SECRET!, {
-        expiresIn: TOKEN_EXPIRY,
-      });
-
-      setCookieToken(res, token);
-
-      const userResponse: UserResponse = {
-        id: user.id,
-        username: user.username,
-        name: user.username,
-        roles: roleNames,
-        permissions,
-        gender: user.gender,
-        grade: user.grade,
-      };
-
-      res.json({ message: "Login successful", user: userResponse });
+      const data = loginSchema.parse(req.body);
+      const result = await AuthService.login(data);
+      setCookieToken(res, result.token);
+      res.json({ message: "Login successful", user: result.user });
     } catch (err) {
-      console.error("Login error:", err);
-      res.status(500).json({ error: "Login failed" });
+      next(err);
     }
   }
 
@@ -171,92 +64,54 @@ export class AuthController {
   @Middleware(authMiddleware)
   private getMe(req: AuthenticatedRequest, res: Response): void {
     const { userId, username, name, roles, permissions, gender, grade } = req.user!;
-
-    const userResponse: UserResponse = {
-      id: userId,
-      username,
-      name,
-      roles,
-      permissions,
-      gender,
-      grade,
-    };
-
-    res.json(userResponse);
+    res.json({ id: userId, username, name, roles, permissions, gender, grade });
   }
 
   @Get("pending")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_VIEW)])
-  private async getPendingUsers(_req: AuthenticatedRequest, res: Response) {
+  private async getPendingUsers(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const pendingUsers = await User.findAll({
-        where: { status: "pending" },
-        attributes: ["id", "username", "status", "createdAt"],
-      });
+      const pendingUsers = await AuthService.getPendingUsers();
       res.json(pendingUsers);
     } catch (err) {
-      console.error("Fetch pending users error:", err);
-      res.status(500).json({ error: "Failed to fetch pending users" });
+      next(err);
     }
   }
 
   @Get("roles")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
-  private async getAllRoles(_req: AuthenticatedRequest, res: Response) {
+  private async getAllRoles(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const roles = await Role.findAll({ attributes: ["id", "name"] });
+      const roles = await AuthService.getAllRoles();
       res.json(roles);
     } catch (err) {
-      console.error("Fetch roles error:", err);
-      res.status(500).json({ error: "Failed to fetch roles" });
+      next(err);
     }
   }
 
   @Put("approve/:id")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
-  private async approveUser(req: AuthenticatedRequest, res: Response): Promise<any> {
-    const { id } = req.params;
-    const { roleIds } = req.body;
-
+  private async approveUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      user.status = "approved";
-      await user.save();
-      await (user as any).setRoles(roleIds);
-
+      const id = parseInt(req.params.id, 10);
+      const data = approveUserSchema.parse(req.body);
+      const user = await AuthService.approveUser(id, data.roleIds);
       res.json({ message: `User ${user.username} has been approved.` });
     } catch (err) {
-      console.error("Approve user error:", err);
-      res.status(500).json({ error: "Failed to approve user" });
+      next(err);
     }
   }
 
   @Delete("reject/:id")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
-  private async rejectUser(req: AuthenticatedRequest, res: Response): Promise<any> {
-    const { id } = req.params;
-
+  private async rejectUser(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await User.findByPk(id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      if (user.status !== "pending") {
-        return res.status(400).json({ error: "User is not in a pending state." });
-      }
-
-      const { username } = user;
-      await user.destroy();
-
+      const id = parseInt(req.params.id, 10);
+      const username = await AuthService.rejectUser(id);
       res.json({ message: `Registration for '${username}' has been rejected.` });
     } catch (err) {
-      console.error("Reject user error:", err);
-      res.status(500).json({ error: "Failed to reject user" });
+      next(err);
     }
   }
 }
+

@@ -1,21 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Button, Form, Tag, message, Popconfirm, Typography } from "antd";
+import { useState, useCallback, useEffect } from "react";
+import { Button, Form, Tag, message, Popconfirm, Typography, Tooltip } from "antd";
 import { PlusOutlined, EyeOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import { useModal } from "@/stores/modalStore";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
+import { useDebounce } from "@/hooks/useDebounce";
 import { sportsService } from "@/services";
-import { useTableData } from "@/components/Common/DataTable";
 import DataTable from "@/components/Common/DataTable";
 import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import SportsEventForm from "@/components/Sports/SportsEventForm";
 import EventDetailsModal from "@/components/Sports/EventDetailsModal";
+import SportsDashboardCards from "@/components/Sports/SportsDashboardCards";
+import SportsDashboardCharts from "@/components/Sports/SportsDashboardCharts";
+import SportsGlobalFilters from "@/components/Sports/SportsGlobalFilters";
 import { formatDate, formatCurrency, sumCosts } from "@/lib/formatters";
 import type { SportEvent, FinancialDetail } from "@/types";
 import { CATEGORY_OPTIONS, PERMISSIONS } from "@/types";
+import type { SportReportKpis } from "@/types/sports.types";
 
 const MODAL_KEY = "sports-form";
 const DETAILS_KEY = "sports-details";
@@ -29,8 +33,48 @@ export default function SportsPage() {
   const canManage = hasPermission(PERMISSIONS.SPORTS_MANAGE);
   const [selectedEvent, setSelectedEvent] = useState<SportEvent | null>(null);
 
-  const fetchFn = useCallback(() => sportsService.getAll(), []);
-  const { data, loading, refresh } = useTableData(fetchFn);
+  // Filter states
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCode, setSelectedCode] = useState<string>("All");
+  const [searchText, setSearchText] = useState<string>("");
+  const debouncedSearchText = useDebounce(searchText, 500);
+
+  // Data states
+  const [data, setData] = useState<SportEvent[]>([]);
+  const [kpis, setKpis] = useState<SportReportKpis | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchFn = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (selectedCategory !== "All") params.category = selectedCategory;
+      if (selectedCode !== "All") params.code = selectedCode;
+      if (debouncedSearchText) params.search = debouncedSearchText;
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        params.startDate = dateRange[0].format("YYYY-MM-DD");
+        params.endDate = dateRange[1].format("YYYY-MM-DD");
+      }
+      
+      const result = await sportsService.getAll(params);
+      setData(result.data);
+      setKpis(result.kpis);
+    } catch {
+      message.error("Failed to fetch data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedCategory, selectedCode, debouncedSearchText, dateRange]);
+
+  useEffect(() => {
+    if (canViewSports) {
+      fetchFn();
+    }
+  }, [fetchFn, canViewSports]);
+
+  const refresh = fetchFn;
+  const filteredData = data;
 
   const openCreate = () => {
     form.resetFields();
@@ -94,7 +138,11 @@ export default function SportsPage() {
     },
     {
       title: "Code", dataIndex: "code", key: "code", width: 70,
-      render: (c: string) => <Tag color={c === "C" ? "blue" : "green"} className="text-xs">{c}</Tag>,
+      render: (c: string) => (
+        <Tag color={c === "Pelayan" || c === "P" ? "blue" : "green"} className="text-xs">
+          {c === "Pelayan" || c === "P" ? "Pelayan" : "Anak"}
+        </Tag>
+      ),
       responsive: ["md"],
     },
     {
@@ -115,6 +163,14 @@ export default function SportsPage() {
       render: (a: number) => <span className="text-green-500 font-medium text-xs sm:text-sm whitespace-nowrap">{formatCurrency(a ?? 0)}</span>,
       sorter: (a, b) => a.totalpemasukan - b.totalpemasukan,
       responsive: ["sm"],
+    },
+    {
+      title: "Net", key: "net", width: 120,
+      render: (_, record) => {
+        const net = (record.totalpemasukan || 0) - (record.totalpengeluaran || 0);
+        return <span className={`font-bold text-xs sm:text-sm whitespace-nowrap ${net >= 0 ? "text-green-600" : "text-red-600"}`}>{formatCurrency(net)}</span>;
+      },
+      sorter: (a, b) => ((a.totalpemasukan || 0) - (a.totalpengeluaran || 0)) - ((b.totalpemasukan || 0) - (b.totalpengeluaran || 0)),
     },
     {
       title: "Action", key: "action", fixed: "right", width: canManage ? 120 : 50,
@@ -145,6 +201,17 @@ export default function SportsPage() {
 
   return (
     <div className="w-full">
+      <SportsGlobalFilters
+        dateRange={dateRange} setDateRange={setDateRange}
+        selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+        selectedCode={selectedCode} setSelectedCode={setSelectedCode}
+        searchText={searchText} setSearchText={setSearchText}
+      />
+      <div className="mt-6 ">
+        <SportsDashboardCards kpis={kpis} />
+        <SportsDashboardCharts data={filteredData} />
+      </div>
+
       <DataTable
         title="Sports Events"
         toolbar={
@@ -155,10 +222,10 @@ export default function SportsPage() {
           ) : undefined
         }
         columns={columns}
-        dataSource={data}
+        dataSource={filteredData}
         loading={loading}
-        rowKey="key"
-        scroll={{ x: 800 }}
+        rowKey="id"
+        scroll={{ x: 900 }}
         size="small"
         pagination={{ pageSize: 20, showSizeChanger: false, responsive: true }}
       />
@@ -182,3 +249,4 @@ export default function SportsPage() {
     </div>
   );
 }
+

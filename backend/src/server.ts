@@ -4,6 +4,7 @@ import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 
 import "./models";
+import { errorHandler } from "./middleware/errorHandler";
 
 const ALLOWED_ORIGINS = [
   "http://localhost:3000",
@@ -66,6 +67,8 @@ export class Server extends OvernightServer {
       new FclController(),
       new AttendanceController(),
     ]);
+
+    this.app.use(errorHandler);
   }
 
   private async connectDb(): Promise<void> {

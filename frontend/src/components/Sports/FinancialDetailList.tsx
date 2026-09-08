@@ -9,6 +9,7 @@ interface FinancialDetailListProps {
   label: string;
   addButtonLabel: string;
   placeholder: string;
+  disabled?: boolean;
 }
 
 export default function FinancialDetailList({
@@ -16,6 +17,7 @@ export default function FinancialDetailList({
   label,
   addButtonLabel,
   placeholder,
+  disabled = false,
 }: FinancialDetailListProps) {
   return (
     <Form.Item label={label}>
@@ -31,7 +33,7 @@ export default function FinancialDetailList({
                     rules={[{ required: true, message: "Masukkan keterangan" }]}
                     className="flex-1 mb-0 w-full sm:w-auto"
                   >
-                    <Input placeholder={placeholder} />
+                    <Input placeholder={placeholder} disabled={disabled} />
                   </Form.Item>
                   <Form.Item
                     {...restField}
@@ -45,20 +47,25 @@ export default function FinancialDetailList({
                       className="w-full"
                       formatter={currencyFormatter}
                       parser={currencyParser}
+                      disabled={disabled}
                     />
                   </Form.Item>
-                  <Button
-                    type="text"
-                    icon={<CloseOutlined />}
-                    onClick={() => remove(fieldName)}
-                    className="sm:self-start"
-                  />
+                  {!disabled && (
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined />}
+                      onClick={() => remove(fieldName)}
+                      className="sm:self-start"
+                    />
+                  )}
                 </div>
               ))}
             </div>
-            <Button type="dashed" icon={<PlusOutlined />} onClick={() => add()} block>
-              {addButtonLabel}
-            </Button>
+            {!disabled && (
+              <Button type="dashed" icon={<PlusOutlined />} onClick={() => add()} block>
+                {addButtonLabel}
+              </Button>
+            )}
           </>
         )}
       </Form.List>

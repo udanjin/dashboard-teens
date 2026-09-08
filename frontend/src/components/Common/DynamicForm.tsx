@@ -8,6 +8,7 @@ import {
   InputNumber,
   Select,
   Switch,
+  AutoComplete,
 } from "antd";
 import type {
   DatePickerProps,
@@ -16,6 +17,7 @@ import type {
   InputProps,
   SelectProps,
   SwitchProps,
+  AutoCompleteProps,
 } from "antd";
 import type { TextAreaProps } from "antd/es/input";
 import type { Rule } from "antd/es/form";
@@ -23,6 +25,7 @@ import type { ReactNode } from "react";
 import { currencyFormatter, currencyParser, restrictToNumericInput } from "@/lib/formatters";
 
 export type FieldType =
+  | "autocomplete"
   | "input"
   | "password"
   | "textarea"
@@ -57,7 +60,8 @@ export interface FieldConfig<T = any> {
     | DatePickerProps
     | SelectProps<number | string | null>
     | SwitchProps
-    | InputNumberProps;
+    | InputNumberProps
+    | AutoCompleteProps;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,6 +101,18 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
           placeholder={safePlaceholder(field.placeholder)}
           {...(field.props as InputProps)}
           disabled={isDisabled ?? (field.props as InputProps)?.disabled}
+        />
+      );
+    case "autocomplete":
+      return (
+        <AutoComplete
+          options={sanitizeOptions(field.options)}
+          placeholder={safePlaceholder(field.placeholder)}
+          filterOption={(inputValue, option) =>
+            String(option!.value).toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+          }
+          {...(field.props as AutoCompleteProps)}
+          disabled={isDisabled ?? (field.props as AutoCompleteProps)?.disabled}
         />
       );
     case "password":
