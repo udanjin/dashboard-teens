@@ -49,7 +49,7 @@ export default function DashboardSidebar({
       items.push({ key: "/fcl", icon: <TeamOutlined />, label: "FCL" });
     }
     if (hasPermission(PERMISSIONS.APPROVAL_VIEW)) {
-      items.push({ key: "/approval", icon: <CheckOutlined />, label: "User Approval" });
+      items.push({ key: "/approval", icon: <TeamOutlined />, label: "User Management" });
     }
     return items.map((item) => ({
       ...item,

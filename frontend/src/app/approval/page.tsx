@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button, Form, Tag, message, Space, Popconfirm, Typography } from "antd";
+import { Button, Form, Tag, message, Space, Popconfirm, Typography, Tabs } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useModal } from "@/stores/modalStore";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -12,26 +12,44 @@ import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import DynamicForm, { type FieldConfig, type FieldOption } from "@/components/Common/DynamicForm";
 import { formatDate } from "@/lib/formatters";
 import { PERMISSIONS } from "@/types";
-import type { PendingUser, Role } from "@/types";
+import type { PendingUser, Role, ApprovedUser, UpdateUserPayload } from "@/types";
 
-const MODAL_KEY = "approval-form";
+const APPROVAL_MODAL_KEY = "approval-form";
+const EDIT_USER_MODAL_KEY = "edit-user-form";
 
-export default function AdminApprovalPage() {
+const GRADE_OPTIONS = [7, 8, 9, 10, 11, 12].map((g) => ({ value: g, label: String(g) }));
+const GENDER_OPTIONS = [
+  { value: "Laki-laki", label: "Laki-laki" },
+  { value: "Perempuan", label: "Perempuan" },
+];
+
+export default function UserManagementPage() {
   const { hasPermission } = useRoleAccess();
   const canAccessApproval = hasPermission(PERMISSIONS.APPROVAL_VIEW) || hasPermission(PERMISSIONS.APPROVAL_MANAGE);
   const canManageApproval = hasPermission(PERMISSIONS.APPROVAL_MANAGE);
 
-  const [form] = Form.useForm<{ roleIds: number[] }>();
-  const modal = useModal(MODAL_KEY);
-  const [selectedUser, setSelectedUser] = useState<PendingUser | null>(null);
+  const [approvalForm] = Form.useForm<{ roleIds: number[] }>();
+  const [editForm] = Form.useForm<UpdateUserPayload>();
+  
+  const approvalModal = useModal(APPROVAL_MODAL_KEY);
+  const editModal = useModal(EDIT_USER_MODAL_KEY);
+  
+  const [selectedPendingUser, setSelectedPendingUser] = useState<PendingUser | null>(null);
+  const [selectedApprovedUser, setSelectedApprovedUser] = useState<ApprovedUser | null>(null);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchPendingUsers = useCallback(async () => {
     const res = await userService.getPendingUsers();
     return res.data;
   }, []);
 
-  const { data, loading, refresh } = useTableData(fetchUsers);
+  const fetchApprovedUsers = useCallback(async () => {
+    const res = await userService.getApprovedUsers();
+    return res.data;
+  }, []);
+
+  const { data: pendingData, loading: pendingLoading, refresh: refreshPending } = useTableData(fetchPendingUsers);
+  const { data: approvedData, loading: approvedLoading, refresh: refreshApproved } = useTableData(fetchApprovedUsers);
 
   useEffect(() => {
     userService.getRoles().then((res) => setAvailableRoles(res.data)).catch(() => {});
@@ -56,20 +74,52 @@ export default function AdminApprovalPage() {
     ],
   ];
 
+  const editFields: FieldConfig[][] = [
+    [
+      {
+        name: "roleIds",
+        label: "Assigned Roles:",
+        componentType: "select",
+        options: roleOptions,
+        placeholder: "Please select roles",
+        props: { mode: "multiple" as const, allowClear: true },
+      },
+    ],
+    [
+      {
+        name: "gender",
+        label: "Gender",
+        componentType: "select",
+        options: GENDER_OPTIONS,
+        placeholder: "Select gender (Optional)",
+        props: { allowClear: true },
+      },
+      {
+        name: "grade",
+        label: "Grade",
+        componentType: "select",
+        options: GRADE_OPTIONS,
+        placeholder: "Select grade (Optional)",
+        props: { allowClear: true },
+      },
+    ]
+  ];
+
   const handleApprove = async (values: { roleIds: number[] }) => {
-    if (!selectedUser) return;
-    modal.setLoading(true);
+    if (!selectedPendingUser) return;
+    approvalModal.setLoading(true);
     try {
-      await userService.approveUser(selectedUser.id, { roleIds: values.roleIds });
-      message.success(`User ${selectedUser.username} has been approved.`);
-      modal.close();
-      form.resetFields();
-      setSelectedUser(null);
-      refresh();
+      await userService.approveUser(selectedPendingUser.id, { roleIds: values.roleIds });
+      message.success(`User ${selectedPendingUser.username} has been approved.`);
+      approvalModal.close();
+      approvalForm.resetFields();
+      setSelectedPendingUser(null);
+      refreshPending();
+      refreshApproved();
     } catch {
       message.error("Failed to approve user.");
     } finally {
-      modal.setLoading(false);
+      approvalModal.setLoading(false);
     }
   };
 
@@ -77,13 +127,40 @@ export default function AdminApprovalPage() {
     try {
       await userService.rejectUser(user.id);
       message.success(`User ${user.username} has been rejected.`);
-      refresh();
+      refreshPending();
     } catch {
       message.error("Failed to reject user.");
     }
   };
 
-  const columns: ColumnsType<PendingUser> = [
+  const handleEditUser = async (values: UpdateUserPayload) => {
+    if (!selectedApprovedUser) return;
+    editModal.setLoading(true);
+    try {
+      await userService.updateUser(selectedApprovedUser.id, values);
+      message.success(`User ${selectedApprovedUser.username} updated successfully.`);
+      editModal.close();
+      editForm.resetFields();
+      setSelectedApprovedUser(null);
+      refreshApproved();
+    } catch {
+      message.error("Failed to update user.");
+    } finally {
+      editModal.setLoading(false);
+    }
+  };
+
+  const handleDeleteApproved = async (user: ApprovedUser) => {
+    try {
+      await userService.deleteUser(user.id);
+      message.success(`User ${user.username} deleted permanently.`);
+      refreshApproved();
+    } catch {
+      message.error("Failed to delete user.");
+    }
+  };
+
+  const pendingColumns: ColumnsType<PendingUser> = [
     { title: "Username", dataIndex: "username", key: "username" },
     {
       title: "Registration Date", dataIndex: "createdAt", key: "createdAt",
@@ -124,14 +201,67 @@ export default function AdminApprovalPage() {
             render: (_: unknown, record: PendingUser) => (
               <Space>
                 <Button type="primary" size="small" onClick={() => {
-                  setSelectedUser(record);
-                  form.resetFields();
-                  modal.open();
+                  setSelectedPendingUser(record);
+                  approvalForm.resetFields();
+                  approvalModal.open();
                 }}>
                   Approve
                 </Button>
                 <Popconfirm title={`Reject ${record.username}?`} onConfirm={() => handleReject(record)} okText="Yes, Reject" cancelText="No">
                   <Button danger size="small">Reject</Button>
+                </Popconfirm>
+              </Space>
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  const approvedColumns: ColumnsType<ApprovedUser> = [
+    { title: "Username", dataIndex: "username", key: "username" },
+    {
+      title: "Assigned Roles", dataIndex: "roles", key: "roles",
+      render: (roles: Role[]) => (
+        <Space wrap>
+          {roles?.map((r) => <Tag color="blue" key={r.id}>{r.name.toUpperCase()}</Tag>)}
+        </Space>
+      )
+    },
+    {
+      title: "Details", key: "details",
+      render: (_: unknown, record: ApprovedUser) => {
+        if (!record.grade && !record.gender) return <Typography.Text type="secondary">-</Typography.Text>;
+        return (
+           <Typography.Text type="secondary" style={{ fontSize: "12px" }}>
+            {record.grade ? `Grade ${record.grade}` : "Any"} {record.gender ? `(${record.gender})` : ""}
+          </Typography.Text>
+        )
+      }
+    },
+    {
+      title: "Status", dataIndex: "status", key: "status",
+      render: (s: string) => <Tag color="green">{s.toUpperCase()}</Tag>,
+    },
+    ...(canManageApproval
+      ? [
+          {
+            title: "Action" as const,
+            key: "action",
+            render: (_: unknown, record: ApprovedUser) => (
+              <Space>
+                <Button type="default" size="small" onClick={() => {
+                  setSelectedApprovedUser(record);
+                  editForm.setFieldsValue({
+                    roleIds: record.roles?.map((r) => r.id) || [],
+                    grade: record.grade,
+                    gender: record.gender
+                  });
+                  editModal.open();
+                }}>
+                  Edit
+                </Button>
+                <Popconfirm title={`Delete ${record.username} permanently?`} onConfirm={() => handleDeleteApproved(record)} okText="Yes, Delete" cancelText="No">
+                  <Button danger size="small">Delete</Button>
                 </Popconfirm>
               </Space>
             ),
@@ -148,29 +278,71 @@ export default function AdminApprovalPage() {
     );
   }
 
+  const items = [
+    {
+      key: "pending",
+      label: `Pending Approvals (${pendingData.length})`,
+      children: (
+        <DataTable
+          title="Pending User Registrations"
+          columns={pendingColumns}
+          dataSource={pendingData}
+          loading={pendingLoading}
+          rowKey="id"
+        />
+      ),
+    },
+    {
+      key: "approved",
+      label: "Approved Users",
+      children: (
+        <DataTable
+          title="All Approved Users"
+          columns={approvedColumns}
+          dataSource={approvedData}
+          loading={approvedLoading}
+          rowKey="id"
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <DataTable
-        title="Pending User Registrations"
-        columns={columns}
-        dataSource={data}
-        loading={loading}
-        rowKey="id"
-      />
+      <Typography.Title level={3} className="mb-6">User Management</Typography.Title>
+      
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+        <Tabs defaultActiveKey="pending" items={items} />
+      </div>
 
       <GlobalFormModal
-        title={`Approve and Assign Roles for ${selectedUser?.username}`}
-        open={modal.isOpen}
+        title={`Approve and Assign Roles for ${selectedPendingUser?.username}`}
+        open={approvalModal.isOpen}
         onCancel={() => {
-          modal.close();
-          form.resetFields();
-          setSelectedUser(null);
+          approvalModal.close();
+          approvalForm.resetFields();
+          setSelectedPendingUser(null);
         }}
-        form={form}
-        confirmLoading={modal.loading}
+        form={approvalForm}
+        confirmLoading={approvalModal.loading}
         okText="Approve & Assign"
       >
-        <DynamicForm form={form} fields={approvalFields} onFinish={handleApprove} />
+        <DynamicForm form={approvalForm} fields={approvalFields} onFinish={handleApprove} />
+      </GlobalFormModal>
+
+      <GlobalFormModal
+        title={`Edit details for ${selectedApprovedUser?.username}`}
+        open={editModal.isOpen}
+        onCancel={() => {
+          editModal.close();
+          editForm.resetFields();
+          setSelectedApprovedUser(null);
+        }}
+        form={editForm}
+        confirmLoading={editModal.loading}
+        okText="Save Changes"
+      >
+        <DynamicForm form={editForm} fields={editFields} onFinish={handleEditUser} />
       </GlobalFormModal>
     </div>
   );

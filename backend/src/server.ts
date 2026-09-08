@@ -60,12 +60,14 @@ export class Server extends OvernightServer {
     const { SportReportController } = require("./controllers/SportReportController");
     const { FclController } = require("./controllers/FclController");
     const { AttendanceController } = require("./controllers/AttendanceController");
+    const { UserController } = require("./controllers/UserController");
 
     super.addControllers([
       new AuthController(),
       new SportReportController(),
       new FclController(),
       new AttendanceController(),
+      new UserController(),
     ]);
 
     this.app.use(errorHandler);

@@ -3,4 +3,4 @@ export { PERMISSIONS } from "./auth.types";
 export type { SportEvent, FinancialDetail, SportReportApiResponse, SportReportPayload, SportCode, SportCategory, SportReportKpis, SportReportApiResponseWrapper } from "./sports.types";
 export { CODE_OPTIONS, CATEGORY_OPTIONS } from "./sports.types";
 export type { Member, MemberStat, LeaderSummary, AttendanceRecord, AttendancePayload, AttendanceSheetEntry, SingleAttendanceStats, WeeklyStatsResponse, Birthday, DeletionRequest, AddMemberData, AddMemberFormValues, EditMemberFormValues } from "./fcl.types";
-export type { PendingUser, Role, ApproveUserPayload } from "./user.types";
+export type { PendingUser, Role, ApproveUserPayload, ApprovedUser, UpdateUserPayload } from "./user.types";

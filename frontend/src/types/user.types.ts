@@ -13,6 +13,22 @@ export interface Role {
   name: string;
 }
 
+export interface ApprovedUser {
+  id: string;
+  username: string;
+  status: "approved";
+  createdAt: string;
+  grade?: number;
+  gender?: string;
+  roles?: Role[];
+}
+
 export interface ApproveUserPayload {
   roleIds: number[];
+}
+
+export interface UpdateUserPayload {
+  roleIds?: number[];
+  grade?: number;
+  gender?: string;
 }
