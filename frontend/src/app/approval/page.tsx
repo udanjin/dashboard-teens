@@ -93,6 +93,29 @@ export default function AdminApprovalPage() {
       title: "Status", dataIndex: "status", key: "status",
       render: (s: string) => <Tag color="orange">{s.toUpperCase()}</Tag>,
     },
+    {
+      title: "Requested Roles", dataIndex: "requestedRoles", key: "requestedRoles",
+      render: (_: unknown, record: PendingUser) => {
+        return (
+          <Space direction="vertical" size="small">
+            {record.requestedRoles && record.requestedRoles.length > 0 ? (
+              <Space wrap>
+                {record.requestedRoles.map((role) => (
+                  <Tag color="purple" key={role}>{role.toUpperCase()}</Tag>
+                ))}
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">None</Typography.Text>
+            )}
+            {(record.grade || record.gender) && (
+              <Typography.Text type="secondary" style={{ fontSize: "12px" }}>
+                Group: {record.grade ? `Grade ${record.grade}` : "Any"} {record.gender ? `(${record.gender})` : ""}
+              </Typography.Text>
+            )}
+          </Space>
+        );
+      },
+    },
     ...(canManageApproval
       ? [
           {

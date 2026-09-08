@@ -9,6 +9,7 @@ class User extends Model {
   public status!: "pending" | "approved" | "rejected";
   public grade!: number;
   public gender!: "Laki-Laki" | "Perempuan";
+  public requestedRoles!: string[] | null;
   public readonly roles?: Role[];
 }
 
@@ -44,6 +45,10 @@ User.init(
     dob: {
       type: DataTypes.DATEONLY,
       allowNull: false,
+    },
+    requestedRoles: {
+      type: DataTypes.JSONB,
+      allowNull: true,
     },
   },
   {

@@ -34,7 +34,7 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  accountType: "member" | "leader";
+  requestedRoles: string[];
   username: string;
   password: string;
   dob: string | null;

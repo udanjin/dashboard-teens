@@ -8,8 +8,8 @@ const TOKEN_EXPIRY = "8h";
 
 export class AuthService {
   static async register(data: any) {
-    if (data.accountType === "leader" && (!data.gender || !data.grade)) {
-      throw new BadRequestError("Gender and grade are required for leader accounts");
+    if (data.requestedRoles.includes("leader") && (!data.gender || !data.grade)) {
+      throw new BadRequestError("Gender and grade are required when requesting the leader role");
     }
 
     const existing = await User.findOne({ where: { username: data.username } });
@@ -26,6 +26,7 @@ export class AuthService {
       gender: data.gender,
       grade: data.grade,
       dob: data.dob,
+      requestedRoles: data.requestedRoles,
     });
   }
 
@@ -86,7 +87,7 @@ export class AuthService {
   static async getPendingUsers() {
     return await User.findAll({
       where: { status: "pending" },
-      attributes: ["id", "username", "status", "createdAt"],
+      attributes: ["id", "username", "status", "createdAt", "requestedRoles", "grade", "gender"],
     });
   }
 

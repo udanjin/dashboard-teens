@@ -11,9 +11,11 @@ import type { Dayjs } from "dayjs";
 
 const { Title, Text } = Typography;
 
-const ACCOUNT_TYPES = [
-  { value: "member", label: "Regular Member" },
-  { value: "leader", label: "Leader" },
+const MINISTRY_ROLES = [
+  { value: "leader", label: "Cell Group Leader" },
+  { value: "fcl", label: "FCL (Coordinator)" },
+  { value: "sports", label: "Sports Team" },
+  { value: "admin", label: "Admin" },
 ];
 const GRADE_OPTIONS = [7, 8, 9, 10, 11, 12].map((g) => ({ value: g, label: String(g) }));
 const GENDER_OPTIONS = [
@@ -22,7 +24,7 @@ const GENDER_OPTIONS = [
 ];
 
 interface RegisterFormValues {
-  accountType: "member" | "leader";
+  requestedRoles: string[];
   username: string;
   password: string;
   confirm: string;
@@ -34,19 +36,20 @@ interface RegisterFormValues {
 export default function RegisterPage() {
   const [form] = Form.useForm<RegisterFormValues>();
   const [loading, setLoading] = useState(false);
-  const [accountType, setAccountType] = useState<string | null>(null);
+  const [requestedRoles, setRequestedRoles] = useState<string[]>([]);
   const router = useRouter();
 
   const fields: FieldConfig<RegisterFormValues>[][] = useMemo(
     () => [
       [
         {
-          name: "accountType",
-          label: "Registering As",
+          name: "requestedRoles",
+          label: "Ministry Roles",
           componentType: "select",
-          options: ACCOUNT_TYPES,
-          placeholder: "Select your intended account type",
-          rules: [{ required: true, message: "Please choose your account type" }],
+          options: MINISTRY_ROLES,
+          placeholder: "Select your intended ministry roles",
+          rules: [{ required: true, message: "Please choose at least one role" }],
+          props: { mode: "multiple" as const, allowClear: true },
         },
       ],
       [
@@ -77,8 +80,8 @@ export default function RegisterPage() {
           componentType: "select",
           options: GENDER_OPTIONS,
           placeholder: "Select gender",
-          hidden: accountType !== "leader",
-          rules: [{ required: accountType === "leader", message: "Gender is required for Leaders" }],
+          hidden: !requestedRoles.includes("leader"),
+          rules: [{ required: requestedRoles.includes("leader"), message: "Gender is required for Leaders" }],
         },
         {
           name: "grade",
@@ -86,8 +89,8 @@ export default function RegisterPage() {
           componentType: "select",
           options: GRADE_OPTIONS,
           placeholder: "Select grade",
-          hidden: accountType !== "leader",
-          rules: [{ required: accountType === "leader", message: "Grade is required for Leaders" }],
+          hidden: !requestedRoles.includes("leader"),
+          rules: [{ required: requestedRoles.includes("leader"), message: "Grade is required for Leaders" }],
         },
       ],
       [
@@ -125,18 +128,18 @@ export default function RegisterPage() {
         },
       ],
     ],
-    [accountType]
+    [requestedRoles]
   );
 
   const handleFinish = async (values: RegisterFormValues) => {
     setLoading(true);
     try {
       const payload: RegisterRequest = {
-        accountType: values.accountType,
+        requestedRoles: values.requestedRoles,
         username: values.username,
         password: values.password,
         dob: values.dob ? values.dob.format("YYYY-MM-DD") : null,
-        ...(values.accountType === "leader" && { gender: values.gender, grade: values.grade }),
+        ...(values.requestedRoles.includes("leader") && { gender: values.gender, grade: values.grade }),
       };
       await authService.register(payload);
       message.success("Registration successful! Your account is now pending approval.");
@@ -163,7 +166,7 @@ export default function RegisterPage() {
             fields={fields}
             onFinish={handleFinish}
             onValuesChange={(changed) => {
-              if ("accountType" in changed) setAccountType(changed.accountType ?? null);
+              if ("requestedRoles" in changed) setRequestedRoles(changed.requestedRoles ?? []);
             }}
             loading={loading}
             footer={
