@@ -56,7 +56,7 @@ export default function SportsPage() {
         params.startDate = dateRange[0].format("YYYY-MM-DD");
         params.endDate = dateRange[1].format("YYYY-MM-DD");
       }
-      
+
       const result = await sportsService.getAll(params);
       setData(result.data);
       setKpis(result.kpis);
@@ -173,7 +173,7 @@ export default function SportsPage() {
       sorter: (a, b) => ((a.totalpemasukan || 0) - (a.totalpengeluaran || 0)) - ((b.totalpemasukan || 0) - (b.totalpengeluaran || 0)),
     },
     {
-      title: "Action", key: "action", fixed: "right", width: canManage ? 85 : 40,
+      title: "Action", key: "action", fixed: "right", width: canManage ? 40 : 20,
       render: (_, record) => (
         <div className="flex gap-1">
           <Button size="small" type="text" icon={<EyeOutlined />} className="text-blue-500 p-1"
