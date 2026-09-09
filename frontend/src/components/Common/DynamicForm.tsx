@@ -229,14 +229,11 @@ export default function DynamicForm<T = any>({
         return (
           <div
             key={rowIndex}
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                visibleFields[0].componentType === "divider"
-                  ? "1fr"
-                  : `repeat(${visibleFields.length}, 1fr)`,
-              gap: 16,
-            }}
+            className={
+              visibleFields[0].componentType === "divider"
+                ? "w-full"
+                : "grid grid-cols-1 sm:grid-flow-col auto-cols-fr gap-4"
+            }
           >
             {visibleFields.map((field) =>
               field.componentType === "divider" ? (

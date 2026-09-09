@@ -198,6 +198,8 @@ export default function UserManagementPage() {
           {
             title: "Action" as const,
             key: "action",
+            fixed: "right" as const,
+            width: 170,
             render: (_: unknown, record: PendingUser) => (
               <Space>
                 <Button type="primary" size="small" onClick={() => {
@@ -247,6 +249,8 @@ export default function UserManagementPage() {
           {
             title: "Action" as const,
             key: "action",
+            fixed: "right" as const,
+            width: 170,
             render: (_: unknown, record: ApprovedUser) => (
               <Space>
                 <Button type="default" size="small" onClick={() => {
@@ -289,6 +293,7 @@ export default function UserManagementPage() {
           dataSource={pendingData}
           loading={pendingLoading}
           rowKey="id"
+          scroll={{ x: 800 }}
         />
       ),
     },
@@ -302,6 +307,7 @@ export default function UserManagementPage() {
           dataSource={approvedData}
           loading={approvedLoading}
           rowKey="id"
+          scroll={{ x: 800 }}
         />
       ),
     },
