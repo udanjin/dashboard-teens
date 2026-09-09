@@ -1,5 +1,6 @@
 import { Op, Sequelize } from "sequelize";
 import SportReport from "../models/SportReport";
+import User from "../models/User";
 import { NotFoundError } from "../errors/AppError";
 
 interface SportReportFilters {
@@ -35,7 +36,11 @@ export class SportReportService {
 
     // Parallel queries for extreme efficiency
     const [reports, kpiResult] = await Promise.all([
-      SportReport.findAll({ where, order: [["date", "DESC"]] }),
+      SportReport.findAll({ 
+        where, 
+        order: [["date", "DESC"]],
+        include: [{ model: User, as: "creator", attributes: ["username"] }] 
+      }),
       SportReport.findOne({
         where,
         attributes: [

@@ -12,6 +12,7 @@ function mapApiResponseToEvent(item: SportReportApiResponse, index: number): Spo
     category: item.sportsCategory,
     totalpemasukan: item.totalPemasukan,
     totalpengeluaran: item.totalPengeluaran,
+    creator: item.creator,
     expenseDetails: (item.detailPengeluaran || []).map((d, i) => ({
       id: d.id || `${item.id}-expense-${i}`,
       keterangan: d.keterangan,

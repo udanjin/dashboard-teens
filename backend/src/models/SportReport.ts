@@ -12,6 +12,7 @@ class SportReport extends Model {
   public detailPemasukan!: { keterangan: string; cost: number }[];
   public totalPengeluaran!: number;
   public totalPemasukan!: number;
+  public createdById?: number | null;
 }
 
 SportReport.init(
@@ -56,6 +57,10 @@ SportReport.init(
     totalPemasukan: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    createdById: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
     },
   },
   {

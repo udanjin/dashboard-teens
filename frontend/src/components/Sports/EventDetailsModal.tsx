@@ -9,6 +9,7 @@ interface EventDetailsModalProps {
   event: SportEvent | null;
   open: boolean;
   onClose: () => void;
+  showCreator?: boolean;
 }
 
 const detailsColumns: ColumnsType<FinancialDetail> = [
@@ -59,7 +60,7 @@ function DetailTable({
   );
 }
 
-export default function EventDetailsModal({ event, open, onClose }: EventDetailsModalProps) {
+export default function EventDetailsModal({ event, open, onClose, showCreator }: EventDetailsModalProps) {
   if (!event) return null;
 
   const netResult = event.totalpemasukan - event.totalpengeluaran;
@@ -79,6 +80,9 @@ export default function EventDetailsModal({ event, open, onClose }: EventDetails
           <div><strong>Category:</strong> {event.category}</div>
           <div><strong>Venue:</strong> {event.venue}</div>
           <div><strong>Participant:</strong> {event.participant}</div>
+          {showCreator && event.creator?.username && (
+            <div className="sm:col-span-2"><strong>Created By:</strong> {event.creator.username}</div>
+          )}
         </div>
 
         <DetailTable title="Detail Pengeluaran" data={event.expenseDetails} totalColor="text-red-500" />

@@ -245,6 +245,7 @@ export default function SportsPage() {
         event={selectedEvent}
         open={detailsModal.isOpen}
         onClose={detailsModal.close}
+        showCreator={canManage}
       />
     </div>
   );

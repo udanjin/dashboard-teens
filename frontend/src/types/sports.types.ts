@@ -19,6 +19,7 @@ export interface SportEvent {
   pemasukanDetails: FinancialDetail[];
   totalpengeluaran: number;
   totalpemasukan: number;
+  creator?: { username: string };
 }
 
 export interface SportReportApiResponse {

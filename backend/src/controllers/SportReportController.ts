@@ -51,7 +51,8 @@ export class SportReportController {
   private async createReport(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const data = createSportReportSchema.parse(req.body);
-      const report = await SportReportService.createReport(data);
+      const payload = { ...data, createdById: req.user!.userId };
+      const report = await SportReportService.createReport(payload);
       res.status(201).json(report);
     } catch (err) {
       next(err);

@@ -2,6 +2,9 @@ import User from "./User";
 import Member from "./Member";
 import Role from "./Role";
 import Attendance from "./Attendance";
+import SportReport from "./SportReport";
+
+SportReport.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 
 User.belongsToMany(Member, {
   through: "LeaderMember",
