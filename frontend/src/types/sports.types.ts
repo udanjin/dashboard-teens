@@ -24,6 +24,7 @@ export interface SportEvent {
 
 export interface SportReportApiResponse {
   id: string;
+  creator?: { username: string };
   code: SportCode;
   date: string;
   sportsCategory: SportCategory;
