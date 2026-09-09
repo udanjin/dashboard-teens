@@ -36,7 +36,16 @@ export default function DashboardSidebar({
   const pathname = usePathname();
   const { user } = useAuth();
   const { hasPermission } = useRoleAccess();
-  const isEffectivelyCollapsed = isCollapsed && !isHovered;
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const isEffectivelyCollapsed = !isMobile && isCollapsed && !isHovered;
 
   const getMenuItems = () => {
     const items = [
