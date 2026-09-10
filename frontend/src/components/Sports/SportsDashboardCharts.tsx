@@ -158,15 +158,31 @@ export default function SportsDashboardCharts({ data }: SportsDashboardChartsPro
   return (
     <Row gutter={[16, 16]} className="mb-6">
       <Col xs={24} lg={16}>
-        <Card title="Cash Flow" bordered={false} className="shadow-sm h-[350px]">
-          <div className="h-[250px] w-full">
+        <Card
+          title={
+            <span className="font-semibold text-gray-800 text-base">
+              Monthly Cash Flow (Income vs Expenses)
+            </span>
+          }
+          bordered={false}
+          className="shadow-sm rounded-xl border border-gray-100 h-[360px]"
+        >
+          <div className="h-[270px] w-full">
             <canvas ref={barChartRef} />
           </div>
         </Card>
       </Col>
       <Col xs={24} lg={8}>
-        <Card title="Participants by Sport" bordered={false} className="shadow-sm h-[350px]">
-          <div className="h-[250px] w-full">
+        <Card
+          title={
+            <span className="font-semibold text-gray-800 text-base">
+              Participants by Category
+            </span>
+          }
+          bordered={false}
+          className="shadow-sm rounded-xl border border-gray-100 h-[360px]"
+        >
+          <div className="h-[270px] w-full">
             <canvas ref={donutChartRef} />
           </div>
         </Card>

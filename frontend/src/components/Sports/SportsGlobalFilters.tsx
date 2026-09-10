@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { DatePicker, Select, Input, Card, AutoComplete } from "antd";
 import type { Dayjs } from "dayjs";
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
 import { CATEGORY_OPTIONS, CODE_OPTIONS } from "@/types";
 import { sportsService } from "@/services";
 
@@ -39,8 +39,12 @@ export default function SportsGlobalFilters({
   }, []);
 
   return (
-    <Card bordered={false} className="shadow-sm mb-6" bodyStyle={{ padding: "16px 24px" }}>
-      <div className="flex flex-wrap gap-4 items-center">
+    <Card
+      bordered={false}
+      className="shadow-sm mb-6 rounded-2xl border border-gray-100"
+      styles={{ body: { padding: "16px 20px" } }}
+    >
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex-1 min-w-[200px]">
           <AutoComplete
             options={options}
@@ -53,31 +57,33 @@ export default function SportsGlobalFilters({
             }
           >
             <Input
-              placeholder="Search venue..."
+              placeholder="Search venue or location..."
               prefix={<SearchOutlined className="text-gray-400" />}
               allowClear
+              className="rounded-lg"
             />
           </AutoComplete>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
+
+        <div className="flex items-center gap-2.5 flex-wrap">
           <RangePicker
             value={dateRange}
             // @ts-ignore
             onChange={(dates) => setDateRange(dates as [Dayjs, Dayjs] | null)}
             allowClear
-            className="w-60"
+            className="w-full sm:w-60 rounded-lg"
           />
           <Select
             value={selectedCategory}
             onChange={setSelectedCategory}
             options={[{ value: "All", label: "All Categories" }, ...CATEGORY_OPTIONS]}
-            className="w-40"
+            className="w-36 rounded-lg"
           />
           <Select
             value={selectedCode}
             onChange={setSelectedCode}
-            options={[{ value: "All", label: "All Codes" }, ...CODE_OPTIONS]}
-            className="w-32"
+            options={[{ value: "All", label: "All Groups" }, ...CODE_OPTIONS]}
+            className="w-32 rounded-lg"
           />
         </div>
       </div>

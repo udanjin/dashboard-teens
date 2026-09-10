@@ -26,6 +26,7 @@ export const weeklyStatsSchema = z.object({
   year: z.string().optional(),
   gender: z.string().optional(),
   grade: z.string().optional(),
+  lastWeeks: z.string().optional(),
 });
 
 export const requestDeleteSchema = z.object({

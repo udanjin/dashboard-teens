@@ -2,6 +2,7 @@ import { Op, Sequelize } from "sequelize";
 import SportReport from "../models/SportReport";
 import User from "../models/User";
 import { NotFoundError } from "../errors/AppError";
+import { CashAdjustmentService } from "./CashAdjustmentService";
 
 interface SportReportFilters {
   startDate?: string;
@@ -35,7 +36,7 @@ export class SportReportService {
     }
 
     // Parallel queries for extreme efficiency
-    const [reports, kpiResult] = await Promise.all([
+    const [reports, kpiResult, netAdjustment] = await Promise.all([
       SportReport.findAll({ 
         where, 
         order: [["date", "DESC"]],
@@ -51,6 +52,7 @@ export class SportReportService {
         ],
         raw: true,
       }),
+      CashAdjustmentService.getNetAdjustment(),
     ]);
 
     const kpisRaw = kpiResult as unknown as {
@@ -62,7 +64,7 @@ export class SportReportService {
 
     const totalIncome = Number(kpisRaw?.totalIncome) || 0;
     const totalExpenses = Number(kpisRaw?.totalExpenses) || 0;
-    const netBalance = totalIncome - totalExpenses;
+    const netBalance = totalIncome - totalExpenses + netAdjustment;
     const totalParticipants = Number(kpisRaw?.totalParticipants) || 0;
     const totalEvents = Number(kpisRaw?.totalEvents) || 0;
 
@@ -72,6 +74,7 @@ export class SportReportService {
         totalIncome,
         totalExpenses,
         netBalance,
+        netAdjustment,
         totalParticipants,
         totalEvents,
       },

@@ -7,6 +7,7 @@ import {
   HomeOutlined,
   TeamOutlined,
   TrophyOutlined,
+  SolutionOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
@@ -56,6 +57,9 @@ export default function DashboardSidebar({
     }
     if (hasPermission(PERMISSIONS.FCL_VIEW)) {
       items.push({ key: "/fcl", icon: <TeamOutlined />, label: "FCL" });
+    }
+    if (hasPermission(PERMISSIONS.FCL_VIEW_SUMMARY)) {
+      items.push({ key: "/fcl/leaders", icon: <SolutionOutlined />, label: "Leaders Summary" });
     }
     if (hasPermission(PERMISSIONS.APPROVAL_VIEW)) {
       items.push({ key: "/approval", icon: <TeamOutlined />, label: "User Management" });

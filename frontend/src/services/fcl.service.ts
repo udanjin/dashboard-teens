@@ -32,16 +32,17 @@ export const fclService = {
   },
 
   getWeeklyStats(params: {
-    month: number;
-    year: number;
+    month?: number;
+    year?: number;
+    lastWeeks?: number;
     gender?: string | null;
     grade?: number | null;
     leaderName?: string | null;
   }) {
-    const searchParams = new URLSearchParams({
-      month: String(params.month),
-      year: String(params.year),
-    });
+    const searchParams = new URLSearchParams();
+    if (params.month) searchParams.append("month", String(params.month));
+    if (params.year) searchParams.append("year", String(params.year));
+    if (params.lastWeeks) searchParams.append("lastWeeks", String(params.lastWeeks));
     if (params.gender) searchParams.append("gender", params.gender);
     if (params.grade) searchParams.append("grade", String(params.grade));
     if (params.leaderName) searchParams.append("leaderName", params.leaderName);

@@ -61,6 +61,7 @@ export class Server extends OvernightServer {
     const { FclController } = require("./controllers/FclController");
     const { AttendanceController } = require("./controllers/AttendanceController");
     const { UserController } = require("./controllers/UserController");
+    const { CashAdjustmentController } = require("./controllers/CashAdjustmentController");
 
     super.addControllers([
       new AuthController(),
@@ -68,6 +69,7 @@ export class Server extends OvernightServer {
       new FclController(),
       new AttendanceController(),
       new UserController(),
+      new CashAdjustmentController(),
     ]);
 
     this.app.use(errorHandler);

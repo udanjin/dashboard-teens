@@ -64,6 +64,7 @@ export interface SportReportKpis {
   totalIncome: number;
   totalExpenses: number;
   netBalance: number;
+  netAdjustment: number;
   totalParticipants: number;
   totalEvents: number;
 }

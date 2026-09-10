@@ -167,9 +167,8 @@ export class FclService {
     });
   }
 
-  static async getFclWeeklyStats(filters: { month?: string; year?: string; gender?: string; grade?: string }) {
-    const { month, year, gender, grade } = filters;
-    const targetDate = month && year ? dayjs(`${year}-${month}-01`) : dayjs();
+  static async getFclWeeklyStats(filters: { month?: string; year?: string; gender?: string; grade?: string; lastWeeks?: string }) {
+    const { month, year, gender, grade, lastWeeks } = filters;
 
     const memberWhere: any = {};
     if (gender) memberWhere.gender = gender;
@@ -199,10 +198,26 @@ export class FclService {
       l.members.map((m: Member) => m.id),
     );
 
-    const emptySundays = FclService.getSundaysOfMonth(targetDate);
+    let emptySundays: dayjs.Dayjs[] = [];
+    if (lastWeeks) {
+      const n = parseInt(lastWeeks, 10);
+      let current = dayjs();
+      if (current.day() !== 0) {
+        current = current.day(0); // Go to previous Sunday
+      }
+      for (let i = n - 1; i >= 0; i--) {
+        emptySundays.push(current.subtract(i * 7, "day"));
+      }
+    } else {
+      const targetDate = month && year ? dayjs(`${year}-${month}-01`) : dayjs();
+      emptySundays = FclService.getSundaysOfMonth(targetDate);
+    }
+
+    const labels = emptySundays.map((d, i) => lastWeeks ? d.format("MMM D") : `Week ${i + 1}`);
+
     if (memberIds.length === 0) {
       return {
-        labels: emptySundays.map((_, i) => `Week ${i + 1}`),
+        labels,
         data: emptySundays.map(() => 0),
       };
     }
@@ -224,7 +239,6 @@ export class FclService {
       raw: true,
     });
 
-    const labels = sundays.map((_, i) => `Week ${i + 1}`);
     const data = sundays.map((sundayDate) => {
       const record = (weeklyCounts as any[]).find((c) =>
         dayjs(c.date).isSame(sundayDate, "day"),
