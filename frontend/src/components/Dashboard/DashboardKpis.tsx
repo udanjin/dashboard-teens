@@ -188,7 +188,7 @@ export default function DashboardKpis() {
   return (
     <Row gutter={[16, 16]} className="mb-6 w-full">
       {/* 1. Total Members Card */}
-      <Col xs={24} sm={12} xl={6}>
+      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
         <Card
           bordered={false}
           className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
@@ -236,7 +236,7 @@ export default function DashboardKpis() {
       </Col>
 
       {/* 2. Latest Attendance Card */}
-      <Col xs={24} sm={12} xl={6}>
+      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
         <Card
           bordered={false}
           className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
@@ -301,7 +301,7 @@ export default function DashboardKpis() {
         </Col>
       )}
       {/* 4. Birthdays this month */}
-      <Col xs={24} sm={12} xl={6}>
+      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
         <Card
           bordered={false}
           className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"

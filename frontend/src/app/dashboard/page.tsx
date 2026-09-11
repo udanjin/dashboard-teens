@@ -35,13 +35,12 @@ export default function DashboardHome() {
       {/* 1. Hero Header & Quick Actions */}
       <DashboardHero user={user} />
 
-      {/* 2. Top Metric Cards (Glanceable KPIs) */}
-      <DashboardKpis />
-
-      {/* 3. Main Dashboard 2-Column Grid */}
+      {/* Main Dashboard 2-Column Grid */}
       <Row gutter={[20, 20]}>
         {/* Left Column (Primary Analytics & Overviews) */}
         <Col xs={24} lg={15} xl={16}>
+          <DashboardKpis />
+          
           <div className="flex flex-col gap-6 w-full">
             {/* If user can view summary (Admin / FCL coordinator), show All Leaders Trend */}
             {canViewFclSummary && <AttendanceTrendWidget />}
