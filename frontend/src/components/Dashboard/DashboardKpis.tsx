@@ -96,14 +96,12 @@ export default function DashboardKpis() {
             const summaryData = results[0].value.data || [];
             let mCount = 0;
             let fCount = 0;
-            let total = 0;
             summaryData.forEach((leader: any) => {
-              const count = leader.members?.length || 0;
-              total += count;
-              if (leader.gender === "Laki-laki" || leader.gender === "Male") mCount += count;
-              else if (leader.gender === "Perempuan" || leader.gender === "Female") fCount += count;
+              const g = leader.gender?.toLowerCase() || "";
+              if (g === "laki-laki" || g === "male") mCount++;
+              else if (g === "perempuan" || g === "female") fCount++;
             });
-            totalMembers = total;
+            totalMembers = summaryData.length;
             maleMembers = mCount;
             femaleMembers = fCount;
           } else {
@@ -119,8 +117,20 @@ export default function DashboardKpis() {
             if (weeklyStats?.data?.length) {
               const dataArr: number[] = weeklyStats.data;
               const labelsArr: string[] = weeklyStats.labels;
-              latestAttendance = dataArr[dataArr.length - 1] ?? 0;
-              latestAttendanceLabel = labelsArr[labelsArr.length - 1] || "Latest Week";
+              const datesArr: string[] = weeklyStats.dates || [];
+
+              const now = dayjs();
+              let targetIndex = dataArr.length - 1; // fallback
+
+              for (let i = datesArr.length - 1; i >= 0; i--) {
+                if (dayjs(datesArr[i]).startOf('day').valueOf() <= now.startOf('day').valueOf()) {
+                  targetIndex = i;
+                  break;
+                }
+              }
+
+              latestAttendance = dataArr[targetIndex] ?? 0;
+              latestAttendanceLabel = labelsArr[targetIndex] || "Latest Week";
             }
           } else {
             // For Leaders: calculate present count from their single attendance stats
@@ -176,7 +186,7 @@ export default function DashboardKpis() {
   const currentMonthName = dayjs().format("MMMM");
 
   return (
-    <Row gutter={[16, 16]} className="mb-6">
+    <Row gutter={[16, 16]} className="mb-6 w-full">
       {/* 1. Total Members Card */}
       <Col xs={24} sm={12} xl={6}>
         <Card
@@ -189,18 +199,28 @@ export default function DashboardKpis() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  {canViewFclSummary ? "Total Teens Members" : "My Group Members"}
+                  {canViewFclSummary ? "Total Cell Group Leaders" : "My Group Members"}
                 </span>
                 <div className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">
                   {kpiData.totalMembers}{" "}
-                  <span className="text-sm font-normal text-gray-500">Members</span>
+                  <span className="text-sm font-normal text-gray-500">
+                    {canViewFclSummary ? "Leaders" : "Members"}
+                  </span>
                 </div>
-                <div className="text-xs text-gray-500 mt-2 flex items-center gap-1.5">
+                <div className="text-xs text-gray-500 mt-2 flex items-center gap-1.5 flex-wrap">
                   {canViewFclSummary && (kpiData.maleMembers > 0 || kpiData.femaleMembers > 0) ? (
                     <>
                       <span className="text-blue-600 font-medium">👦 {kpiData.maleMembers} Male</span>
                       <span>•</span>
                       <span className="text-pink-600 font-medium">👧 {kpiData.femaleMembers} Female</span>
+                      {kpiData.totalMembers > kpiData.maleMembers + kpiData.femaleMembers && (
+                        <>
+                          <span>•</span>
+                          <span className="text-gray-500 font-medium">
+                            ❓ {kpiData.totalMembers - kpiData.maleMembers - kpiData.femaleMembers} Unspecified
+                          </span>
+                        </>
+                      )}
                     </>
                   ) : (
                     <span>Active members in group</span>
@@ -246,40 +266,40 @@ export default function DashboardKpis() {
       </Col>
 
       {/* 3. Sports Cash Balance */}
-      <Col xs={24} sm={12} xl={6}>
-        <Card
-          bordered={false}
-          className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
-        >
-          {loading ? (
-            <Skeleton active paragraph={{ rows: 1 }} />
-          ) : (
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Sports Cash Fund
-                </span>
-                <div
-                  className={`text-2xl sm:text-3xl font-bold mt-1 ${
-                    (kpiData.sportsCashBalance ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"
-                  }`}
-                >
-                  {kpiData.sportsCashBalance !== null
-                    ? formatCurrency(kpiData.sportsCashBalance)
-                    : "Rp 0"}
+      {canViewSports && (
+        <Col xs={24} sm={12} xl={6}>
+          <Card
+            bordered={false}
+            className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
+          >
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 1 }} />
+            ) : (
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Sports Cash Fund
+                  </span>
+                  <div
+                    className={`text-2xl sm:text-3xl font-bold mt-1 ${(kpiData.sportsCashBalance ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"
+                      }`}
+                  >
+                    {kpiData.sportsCashBalance !== null
+                      ? formatCurrency(kpiData.sportsCashBalance)
+                      : "Rp 0"}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    <span>Active operational balance</span>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-2">
-                  <span>Active operational balance</span>
+                <div className="p-3 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                  <WalletOutlined />
                 </div>
               </div>
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
-                <WalletOutlined />
-              </div>
-            </div>
-          )}
-        </Card>
-      </Col>
-
+            )}
+          </Card>
+        </Col>
+      )}
       {/* 4. Birthdays this month */}
       <Col xs={24} sm={12} xl={6}>
         <Card

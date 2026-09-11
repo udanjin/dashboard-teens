@@ -246,7 +246,7 @@ export class FclService {
       return record ? parseInt(record.presentCount, 10) : 0;
     });
 
-    return { labels, data };
+    return { labels, data, dates: sundays };
   }
 
   private static getSundaysOfMonth(date: dayjs.Dayjs) {
