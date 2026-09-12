@@ -17,7 +17,7 @@ import { authService } from "@/services/auth.service";
 import type { RegisterRequest } from "@/types";
 
 const MINISTRY_ROLES = [
-  { value: "leader", label: "Cell Group Leader" },
+  { value: "leader", label: "FC Leader" },
   { value: "fcl", label: "FCL Coordinator" },
   { value: "sports", label: "Sports Team" },
   { value: "admin", label: "Admin" },
@@ -29,8 +29,8 @@ const GRADE_OPTIONS = [7, 8, 9, 10, 11, 12].map((g) => ({
 }));
 
 const GENDER_OPTIONS = [
-  { value: "Laki-laki", label: "Male" },
-  { value: "Perempuan", label: "Female" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
 ];
 
 interface AuthSwitchProps {
@@ -458,7 +458,7 @@ export default function AuthSwitch({ initialMode = "signin" }: AuthSwitchProps) 
             <div className={leftPanelContentClasses}>
               <h3 className={panelTitleClasses}>New here?</h3>
               <p className={panelTextClasses}>
-                Join ATeens today! Register your account to manage cell groups,
+                Join ATeens today! Register your account to manage FC groups,
                 fellowship attendance, and sports activities.
               </p>
               <button

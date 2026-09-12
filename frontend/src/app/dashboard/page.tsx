@@ -29,6 +29,7 @@ export default function DashboardHome() {
   const canViewSports = hasPermission(PERMISSIONS.SPORTS_VIEW);
   const canViewFclSummary = hasPermission(PERMISSIONS.FCL_VIEW_SUMMARY);
   const canManageFclMembers = hasPermission(PERMISSIONS.FCL_MANAGE_MEMBERS);
+  const canViewApproval = hasPermission(PERMISSIONS.APPROVAL_VIEW);
 
   return (
     <div className="w-full min-h-[calc(100vh-64px)] p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
@@ -45,7 +46,7 @@ export default function DashboardHome() {
             {/* If user can view summary (Admin / FCL coordinator), show All Leaders Trend */}
             {canViewFclSummary && <AttendanceTrendWidget />}
 
-            {/* If user can manage FCL members (Leader), show My Cell Group Overview */}
+            {/* If user can manage FCL members (Leader), show My FC Group Overview */}
             {canManageFclMembers && <LeaderCellGroupWidget />}
 
             {/* Sports summary if user has sports permission */}
@@ -57,7 +58,7 @@ export default function DashboardHome() {
         <Col xs={24} lg={9} xl={8}>
           <div className="flex flex-col gap-6 w-full">
             <UpcomingBirthdays />
-            <PendingAlertsWidget />
+            {canViewApproval && <PendingAlertsWidget />}
           </div>
         </Col>
       </Row>

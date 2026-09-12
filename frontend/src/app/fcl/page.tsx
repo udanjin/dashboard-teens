@@ -219,38 +219,38 @@ export default function FclPage() {
     },
     ...(canManageMembers
       ? [
-          {
-            title: "Action",
-            key: "action",
-            align: "center" as const,
-            width: 110,
-            render: (_: unknown, record: Member) => (
-              <div className="flex items-center justify-center gap-1.5">
-                <Button
-                  type="text"
-                  icon={<EditOutlined className="text-blue-500" />}
-                  size="small"
-                  onClick={() => {
-                    setMemberToEdit(record);
-                    editModal.open();
-                  }}
-                  title="Edit member"
-                />
-                <Button
-                  type="text"
-                  danger
-                  icon={<DeleteOutlined />}
-                  size="small"
-                  onClick={() => {
-                    setMemberToDelete(record);
-                    deleteModal.open();
-                  }}
-                  title="Request delete"
-                />
-              </div>
-            ),
-          },
-        ]
+        {
+          title: "Action",
+          key: "action",
+          align: "center" as const,
+          width: 110,
+          render: (_: unknown, record: Member) => (
+            <div className="flex items-center justify-center gap-1.5">
+              <Button
+                type="text"
+                icon={<EditOutlined className="text-blue-500" />}
+                size="small"
+                onClick={() => {
+                  setMemberToEdit(record);
+                  editModal.open();
+                }}
+                title="Edit member"
+              />
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+                onClick={() => {
+                  setMemberToDelete(record);
+                  deleteModal.open();
+                }}
+                title="Request delete"
+              />
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -278,7 +278,7 @@ export default function FclPage() {
           items={[
             { title: <Link href="/dashboard">Home</Link> },
             { title: "FCL" },
-            { title: "My Cell Group" },
+            { title: "My FC Group" },
           ]}
         />
         <Space wrap>
@@ -297,10 +297,10 @@ export default function FclPage() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
         <div>
           <Title level={2} className="!mb-1 text-gray-800">
-            Cell Group Management
+            FC Group Management
           </Title>
           <Text type="secondary" className="text-sm">
-            Manage your cell group members, review monthly attendance, and record Sunday sessions.
+            Manage your FC group members, review monthly attendance, and record Sunday sessions.
           </Text>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <Tag color="purple" className="rounded-full px-2.5 font-medium">
@@ -313,10 +313,10 @@ export default function FclPage() {
             )}
             {user?.gender && (
               <Tag
-                color={user.gender === "Laki-laki" || user.gender === "Male" ? "blue" : "pink"}
+                color={user.gender === "male" ? "blue" : "pink"}
                 className="rounded-full px-2.5 font-medium"
               >
-                {user.gender === "Laki-laki" || user.gender === "Male" ? "Male Group" : "Female Group"}
+                {user.gender === "male" ? "Male Group" : "Female Group"}
               </Tag>
             )}
           </div>
@@ -349,7 +349,7 @@ export default function FclPage() {
       {/* Group KPI Cards */}
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={6} lg={6}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-gray-400 uppercase font-medium">Total Members</span>}
               value={groupStats.total}
@@ -360,7 +360,7 @@ export default function FclPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={6}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-emerald-600 uppercase font-medium">Present (This Month)</span>}
               value={groupStats.present}
@@ -371,7 +371,7 @@ export default function FclPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={6}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-rose-600 uppercase font-medium">Absent (This Month)</span>}
               value={groupStats.absent}
@@ -382,7 +382,7 @@ export default function FclPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={6}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-blue-600 uppercase font-medium">Attendance Rate</span>}
               value={groupStats.rate}
@@ -403,7 +403,7 @@ export default function FclPage() {
               <TeamOutlined />
             </div>
             <div>
-              <span className="font-semibold text-gray-800 text-base">Cell Group Roster</span>
+              <span className="font-semibold text-gray-800 text-base">FC Group Roster</span>
               <p className="text-xs font-normal text-gray-400">
                 Period: {statsDate.format("MMMM YYYY")} ({filteredMembers.length} members)
               </p>
@@ -438,13 +438,16 @@ export default function FclPage() {
           </div>
         </div>
 
-        <DataTable
-          columns={columns}
-          dataSource={filteredMembers}
-          loading={loading}
-          rowKey="id"
-          pagination={{ pageSize: 15, showSizeChanger: true }}
-        />
+        <div className="overflow-x-auto w-full">
+          <DataTable
+            columns={columns}
+            dataSource={filteredMembers}
+            loading={loading}
+            rowKey="id"
+            pagination={{ pageSize: 15, showSizeChanger: true }}
+            scroll={{ x: 800 }}
+          />
+        </div>
       </Card>
 
       {/* Modals */}

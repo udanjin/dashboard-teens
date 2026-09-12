@@ -216,8 +216,8 @@ export default function FclAdminHome() {
               value={selectedGender}
               onChange={(v) => { setSelectedGender(v); setSelectedGrade(null); setSelectedLeaderName(null); }}
             >
-              <Option value="Laki-laki">Laki-laki</Option>
-              <Option value="Perempuan">Perempuan</Option>
+              <Option value="male">Male</Option>
+              <Option value="female">Female</Option>
             </Select>
             <Select
               placeholder="Filter by Grade"

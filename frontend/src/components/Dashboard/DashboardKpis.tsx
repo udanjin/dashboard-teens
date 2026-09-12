@@ -1,40 +1,40 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Card, Row, Col, Skeleton } from "antd";
+import React, { useEffect, useState, useMemo } from "react";
+import { Card, Row, Col, Skeleton, Tooltip } from "antd";
 import {
   TeamOutlined,
-  LineChartOutlined,
+  CheckCircleOutlined,
   WalletOutlined,
-  GiftOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { fclService, sportsService, attendanceService } from "@/services";
+import { fclService, sportsService } from "@/services";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { PERMISSIONS } from "@/types";
 import { formatCurrency } from "@/lib/formatters";
 
 interface KpiData {
-  totalMembers: number;
-  maleMembers: number;
-  femaleMembers: number;
-  latestAttendance: number | null;
-  latestAttendanceLabel: string;
+  totalLeaders: number;
+  maleLeaders: number;
+  femaleLeaders: number;
+  leaderSubmission: {
+    submitted: number;
+    total: number;
+    date: string;
+    unsubmitted: string[];
+  } | null;
   sportsCashBalance: number | null;
-  monthlyBirthdaysCount: number;
 }
 
 export default function DashboardKpis() {
   const { hasPermission } = useRoleAccess();
   const [loading, setLoading] = useState(true);
   const [kpiData, setKpiData] = useState<KpiData>({
-    totalMembers: 0,
-    maleMembers: 0,
-    femaleMembers: 0,
-    latestAttendance: null,
-    latestAttendanceLabel: "",
+    totalLeaders: 0,
+    maleLeaders: 0,
+    femaleLeaders: 0,
+    leaderSubmission: null,
     sportsCashBalance: null,
-    monthlyBirthdaysCount: 0,
   });
 
   const canViewSports = hasPermission(PERMISSIONS.SPORTS_VIEW);
@@ -52,96 +52,49 @@ export default function DashboardKpis() {
       try {
         const promises: Promise<any>[] = [];
 
-        // 1. Members
+        // 1. Leaders summary (FCL only)
         if (canViewFclSummary) {
           promises.push(fclService.getSummary(currentMonth, currentYear));
         } else {
-          promises.push(fclService.getMyMembers());
+          promises.push(Promise.resolve(null));
         }
 
-        // 2. Attendance stats (All leaders if summary, or group stats for leader)
+        // 2. Leader submission status (FCL only)
         if (canViewFclSummary) {
-          promises.push(
-            fclService.getWeeklyStats({ month: currentMonth, year: currentYear })
-          );
+          promises.push(fclService.getLeaderSubmissionStatus());
         } else {
-          promises.push(
-            attendanceService.getSingleAttendance(currentMonth, currentYear)
-          );
+          promises.push(Promise.resolve(null));
         }
 
-        // 3. Sports cash balance (if allowed)
+        // 3. Sports cash balance (Sports role only)
         if (canViewSports) {
           promises.push(sportsService.getCashBalance());
         } else {
           promises.push(Promise.resolve(null));
         }
 
-        // 4. Birthdays
-        promises.push(fclService.getBirthdays());
-
         const results = await Promise.allSettled(promises);
 
-        let totalMembers = 0;
-        let maleMembers = 0;
-        let femaleMembers = 0;
-        let latestAttendance: number | null = null;
-        let latestAttendanceLabel = "";
+        let totalLeaders = 0;
+        let maleLeaders = 0;
+        let femaleLeaders = 0;
+        let leaderSubmission: KpiData["leaderSubmission"] = null;
         let sportsCashBalance: number | null = null;
-        let monthlyBirthdaysCount = 0;
 
-        // Process Members
-        if (results[0].status === "fulfilled" && results[0].value) {
-          if (canViewFclSummary) {
-            const summaryData = results[0].value.data || [];
-            let mCount = 0;
-            let fCount = 0;
-            summaryData.forEach((leader: any) => {
-              const g = leader.gender?.toLowerCase() || "";
-              if (g === "laki-laki" || g === "male") mCount++;
-              else if (g === "perempuan" || g === "female") fCount++;
-            });
-            totalMembers = summaryData.length;
-            maleMembers = mCount;
-            femaleMembers = fCount;
-          } else {
-            const myMembers = results[0].value.data || [];
-            totalMembers = myMembers.length;
-          }
+        // Process Leaders count
+        if (canViewFclSummary && results[0].status === "fulfilled" && results[0].value) {
+          const summaryData = results[0].value.data || [];
+          summaryData.forEach((leader: any) => {
+            const g = (leader.gender || "").toLowerCase();
+            if (g === "male") maleLeaders++;
+            else if (g === "female") femaleLeaders++;
+          });
+          totalLeaders = summaryData.length;
         }
 
-        // Process Attendance
-        if (results[1].status === "fulfilled" && results[1].value) {
-          if (canViewFclSummary) {
-            const weeklyStats = results[1].value.data;
-            if (weeklyStats?.data?.length) {
-              const dataArr: number[] = weeklyStats.data;
-              const labelsArr: string[] = weeklyStats.labels;
-              const datesArr: string[] = weeklyStats.dates || [];
-
-              const now = dayjs();
-              let targetIndex = dataArr.length - 1; // fallback
-
-              for (let i = datesArr.length - 1; i >= 0; i--) {
-                if (dayjs(datesArr[i]).startOf('day').valueOf() <= now.startOf('day').valueOf()) {
-                  targetIndex = i;
-                  break;
-                }
-              }
-
-              latestAttendance = dataArr[targetIndex] ?? 0;
-              latestAttendanceLabel = labelsArr[targetIndex] || "Latest Week";
-            }
-          } else {
-            // For Leaders: calculate present count from their single attendance stats
-            const stats = results[1].value.data?.memberStats || [];
-            const totalPresent = stats.reduce(
-              (sum: number, s: any) => sum + (s.presentCount || 0),
-              0
-            );
-            latestAttendance = totalPresent;
-            latestAttendanceLabel = "This Month in Group";
-          }
+        // Process Leader submission status
+        if (canViewFclSummary && results[1].status === "fulfilled" && results[1].value) {
+          leaderSubmission = results[1].value.data || results[1].value;
         }
 
         // Process Sports Cash
@@ -149,24 +102,13 @@ export default function DashboardKpis() {
           sportsCashBalance = results[2].value.data;
         }
 
-        // Process Birthdays
-        if (results[3].status === "fulfilled" && results[3].value) {
-          const bdays = results[3].value.data || [];
-          const currentMonthZeroIndex = now.month();
-          monthlyBirthdaysCount = bdays.filter((b: any) => {
-            return dayjs(b.date).month() === currentMonthZeroIndex;
-          }).length;
-        }
-
         if (isMounted) {
           setKpiData({
-            totalMembers,
-            maleMembers,
-            femaleMembers,
-            latestAttendance,
-            latestAttendanceLabel,
+            totalLeaders,
+            maleLeaders,
+            femaleLeaders,
+            leaderSubmission,
             sportsCashBalance,
-            monthlyBirthdaysCount,
           });
         }
       } catch (err) {
@@ -185,150 +127,161 @@ export default function DashboardKpis() {
 
   const currentMonthName = dayjs().format("MMMM");
 
+  // Determine which cards are visible
+  const visibleCards = useMemo(() => {
+    const cards: string[] = [];
+    if (canViewFclSummary) cards.push("leaders");
+    if (canViewFclSummary) cards.push("submission");
+    if (canViewSports) cards.push("sports");
+    return cards;
+  }, [canViewFclSummary, canViewSports]);
+
+  // Dynamic column width based on visible card count
+  const getColSpan = () => {
+    const count = visibleCards.length;
+    switch (count) {
+      case 1: return { xs: 24, sm: 24, md: 24, lg: 24, xl: 24 };
+      case 2: return { xs: 24, sm: 12, md: 12, lg: 12, xl: 12 };
+      case 3: return { xs: 24, sm: 12, md: 8, lg: 8, xl: 8 };
+      case 4: return { xs: 24, sm: 12, md: 12, lg: 12, xl: 6 };
+      default: return { xs: 24, sm: 12, md: 8, lg: 6, xl: 6 };
+    }
+  };
+
+  const colSpan = getColSpan();
+
+  const renderCard = (content: React.ReactNode) => (
+    <Card
+      bordered={false}
+      className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
+    >
+      {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : content}
+    </Card>
+  );
+
   return (
-    <Row gutter={[16, 16]} className="mb-6 w-full">
-      {/* 1. Total Members Card */}
-      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
-        <Card
-          bordered={false}
-          className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
-        >
-          {loading ? (
-            <Skeleton active paragraph={{ rows: 1 }} />
-          ) : (
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  {canViewFclSummary ? "Total Cell Group Leaders" : "My Group Members"}
+    <Row gutter={[16, 16]} className="mb-6">
+      {/* 1. Total FC Leaders (FCL/Admin only) */}
+      {canViewFclSummary && (
+        <Col {...colSpan}>
+          {renderCard(
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider block truncate">
+                  Total FC Leaders
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">
-                  {kpiData.totalMembers}{" "}
-                  <span className="text-sm font-normal text-gray-500">
-                    {canViewFclSummary ? "Leaders" : "Members"}
-                  </span>
+                <div className="text-xl sm:text-2xl font-bold text-gray-800 mt-1">
+                  {kpiData.totalLeaders}{" "}
+                  <span className="text-sm font-normal text-gray-500">Leaders</span>
                 </div>
                 <div className="text-xs text-gray-500 mt-2 flex items-center gap-1.5 flex-wrap">
-                  {canViewFclSummary && (kpiData.maleMembers > 0 || kpiData.femaleMembers > 0) ? (
+                  {(kpiData.maleLeaders > 0 || kpiData.femaleLeaders > 0) ? (
                     <>
-                      <span className="text-blue-600 font-medium">👦 {kpiData.maleMembers} Male</span>
+                      <span className="text-blue-600 font-medium">👦 {kpiData.maleLeaders} Male</span>
                       <span>•</span>
-                      <span className="text-pink-600 font-medium">👧 {kpiData.femaleMembers} Female</span>
-                      {kpiData.totalMembers > kpiData.maleMembers + kpiData.femaleMembers && (
+                      <span className="text-pink-600 font-medium">👧 {kpiData.femaleLeaders} Female</span>
+                      {kpiData.totalLeaders > kpiData.maleLeaders + kpiData.femaleLeaders && (
                         <>
                           <span>•</span>
                           <span className="text-gray-500 font-medium">
-                            ❓ {kpiData.totalMembers - kpiData.maleMembers - kpiData.femaleMembers} Unspecified
+                            {kpiData.totalLeaders - kpiData.maleLeaders - kpiData.femaleLeaders} Unspecified
                           </span>
                         </>
                       )}
                     </>
                   ) : (
-                    <span>Active members in group</span>
+                    <span>All registered leaders</span>
                   )}
                 </div>
               </div>
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl shrink-0">
                 <TeamOutlined />
               </div>
             </div>
           )}
-        </Card>
-      </Col>
-
-      {/* 2. Latest Attendance Card */}
-      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
-        <Card
-          bordered={false}
-          className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
-        >
-          {loading ? (
-            <Skeleton active paragraph={{ rows: 1 }} />
-          ) : (
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  {canViewFclSummary ? "Latest Attendance (All Leaders)" : "Group Attendance"}
-                </span>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1">
-                  {kpiData.latestAttendance !== null ? kpiData.latestAttendance : "—"}{" "}
-                  <span className="text-sm font-normal text-gray-500">Present</span>
-                </div>
-                <div className="text-xs text-gray-500 mt-2">
-                  <span>{kpiData.latestAttendanceLabel || "This Month"}</span>
-                </div>
-              </div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
-                <LineChartOutlined />
-              </div>
-            </div>
-          )}
-        </Card>
-      </Col>
-
-      {/* 3. Sports Cash Balance */}
-      {canViewSports && (
-        <Col xs={24} sm={12} xl={6}>
-          <Card
-            bordered={false}
-            className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
-          >
-            {loading ? (
-              <Skeleton active paragraph={{ rows: 1 }} />
-            ) : (
-              <div className="flex items-start justify-between">
-                <div>
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Sports Cash Fund
-                  </span>
-                  <div
-                    className={`text-2xl sm:text-3xl font-bold mt-1 ${(kpiData.sportsCashBalance ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"
-                      }`}
-                  >
-                    {kpiData.sportsCashBalance !== null
-                      ? formatCurrency(kpiData.sportsCashBalance)
-                      : "Rp 0"}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    <span>Active operational balance</span>
-                  </div>
-                </div>
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
-                  <WalletOutlined />
-                </div>
-              </div>
-            )}
-          </Card>
         </Col>
       )}
-      {/* 4. Birthdays this month */}
-      <Col xs={24} sm={12} xl={canViewSports ? 12 : 8} xxl={canViewSports ? 6 : 8}>
-        <Card
-          bordered={false}
-          className="shadow-sm hover:shadow-md transition-shadow duration-300 rounded-xl h-full border border-gray-100"
-        >
-          {loading ? (
-            <Skeleton active paragraph={{ rows: 1 }} />
-          ) : (
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Birthdays in {currentMonthName}
+
+      {/* 2. Leaders Submitted Attendance (FCL/Admin only) */}
+      {canViewFclSummary && (
+        <Col {...colSpan}>
+          {renderCard(
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider block truncate">
+                  Leaders Submitted
                 </span>
-                <div className="text-2xl sm:text-3xl font-bold text-purple-700 mt-1">
-                  {kpiData.monthlyBirthdaysCount}{" "}
-                  <span className="text-sm font-normal text-gray-500">Birthdays</span>
-                </div>
+                <Tooltip
+                  title={
+                    kpiData.leaderSubmission?.unsubmitted && kpiData.leaderSubmission.unsubmitted.length > 0
+                      ? (
+                        <div className="max-h-48 overflow-y-auto">
+                          <p className="font-semibold mb-1 border-b border-white/20 pb-1">Unsubmitted Leaders:</p>
+                          <ul className="list-disc pl-4 m-0 text-xs">
+                            {kpiData.leaderSubmission.unsubmitted.map(name => (
+                              <li key={name}>{name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : "All leaders submitted!"
+                  }
+                  placement="bottom"
+                  overlayStyle={{ maxWidth: 300 }}
+                >
+                  <div className="text-xl sm:text-2xl font-bold text-gray-800 mt-1 cursor-help w-fit flex flex-col">
+                    <div>
+                      {kpiData.leaderSubmission
+                        ? `${kpiData.leaderSubmission.submitted} / ${kpiData.leaderSubmission.total}`
+                        : "—"}{" "}
+                      <span className="text-sm font-normal text-gray-500">Leaders</span>
+                    </div>
+                    <span className="text-[10px] font-normal text-blue-500 mt-0.5">Hover to see unsubmitted</span>
+                  </div>
+                </Tooltip>
                 <div className="text-xs text-gray-500 mt-2">
-                  <span>Celebrations this month</span>
+                  <span>
+                    {kpiData.leaderSubmission
+                      ? `Week of ${dayjs(kpiData.leaderSubmission.date).format("MMM D")}`
+                      : "This week"}
+                  </span>
                 </div>
               </div>
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-xl">
-                <GiftOutlined />
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl shrink-0">
+                <CheckCircleOutlined />
               </div>
             </div>
           )}
-        </Card>
-      </Col>
+        </Col>
+      )}
+
+      {/* 3. Sports Cash Balance (Sports role only) */}
+      {canViewSports && (
+        <Col {...colSpan}>
+          {renderCard(
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider block truncate">
+                  Sports Cash Fund
+                </span>
+                <div
+                  className={`text-xl sm:text-2xl font-bold mt-1 truncate ${(kpiData.sportsCashBalance ?? 0) >= 0 ? "text-emerald-600" : "text-red-500"
+                    }`}
+                >
+                  {kpiData.sportsCashBalance !== null
+                    ? formatCurrency(kpiData.sportsCashBalance)
+                    : "Rp 0"}
+                </div>
+                <div className="text-xs text-gray-500 mt-2">
+                  <span>Active operational balance</span>
+                </div>
+              </div>
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl shrink-0">
+                <WalletOutlined />
+              </div>
+            </div>
+          )}
+        </Col>
+      )}
     </Row>
   );
 }

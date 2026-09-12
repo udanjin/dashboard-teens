@@ -128,6 +128,17 @@ export class FclController {
     }
   }
 
+  @Get("leader-submission-status")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_VIEW_SUMMARY)])
+  private async getLeaderSubmissionStatus(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const status = await FclService.getLeaderSubmissionStatus();
+      res.json(status);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   @Get("birthdays")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.DASHBOARD_VIEW)])
   public async getBirthday(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {

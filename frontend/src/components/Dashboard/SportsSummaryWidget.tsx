@@ -170,7 +170,7 @@ export default function SportsSummaryWidget() {
                     <div className="flex items-center gap-2.5">
                       <Tag
                         color={getCategoryColor(evt.category)}
-                        className="font-medium text-xs rounded border-0"
+                        className="font-medium text-xs rounded border-0 w-20 text-center"
                       >
                         {evt.category}
                       </Tag>

@@ -263,6 +263,60 @@ export class FclService {
     return sundays;
   }
 
+  static async getLeaderSubmissionStatus() {
+    // Find the most recent Sunday on or before today
+    let targetSunday = dayjs();
+    if (targetSunday.day() !== 0) {
+      targetSunday = targetSunday.subtract(targetSunday.day(), "day");
+    }
+    const targetDate = targetSunday.format("YYYY-MM-DD");
+
+    // Get all leaders
+    const leaders = await User.findAll({
+      attributes: ["id", "username"],
+      include: [
+        {
+          model: Role,
+          as: "roles",
+          where: { name: { [Op.in]: ["leader"] } },
+          attributes: [],
+          through: { attributes: [] },
+        },
+      ],
+    });
+
+    const totalLeaders = leaders.length;
+    const leaderIds = leaders.map((l) => l.id);
+
+    if (leaderIds.length === 0) {
+      return { submitted: 0, total: 0, date: targetDate, unsubmitted: [] };
+    }
+
+    // Count distinct leaders who have at least 1 attendance record for this date
+    const submittedLeaders = await Attendance.findAll({
+      attributes: [
+        [Sequelize.fn("DISTINCT", Sequelize.col("leaderId")), "leaderId"],
+      ],
+      where: {
+        leaderId: { [Op.in]: leaderIds },
+        date: targetDate,
+      },
+      raw: true,
+    });
+
+    const submittedLeaderIds = submittedLeaders.map((s: any) => s.leaderId);
+    const unsubmittedLeaders = leaders
+      .filter((l) => !submittedLeaderIds.includes(l.id))
+      .map((l) => l.username);
+
+    return {
+      submitted: submittedLeaders.length,
+      total: totalLeaders,
+      date: targetDate,
+      unsubmitted: unsubmittedLeaders,
+    };
+  }
+
   static async requestDeleteMember(memberId: number, reason: string) {
     const member = await Member.findByPk(memberId);
     if (!member) throw new NotFoundError("Member not found");

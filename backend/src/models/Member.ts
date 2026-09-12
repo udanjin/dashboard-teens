@@ -9,7 +9,6 @@ class Member extends Model {
   public deletionReason!: string | null;
   public dob!: Date;
   public grade!: number;
-  public gender!: string;
   public phoneNumber!: string;
   public readonly leaders?: User[];
 }
@@ -30,10 +29,7 @@ Member.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    gender: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
+
     status: {
       type: DataTypes.ENUM("active", "pending_deletion"),
       allowNull: false,

@@ -8,7 +8,7 @@ class User extends Model {
   public password!: string;
   public status!: "pending" | "approved" | "rejected";
   public grade!: number;
-  public gender!: "Laki-Laki" | "Perempuan";
+  public gender!: "male" | "female";
   public requestedRoles!: string[] | null;
   public readonly roles?: Role[];
 }
@@ -39,7 +39,7 @@ User.init(
       allowNull: true,
     },
     gender: {
-      type: DataTypes.ENUM("Laki-laki", "Perempuan"),
+      type: DataTypes.ENUM("male", "female"),
       allowNull: true,
     },
     dob: {

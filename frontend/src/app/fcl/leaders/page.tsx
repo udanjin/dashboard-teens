@@ -33,6 +33,7 @@ import {
   FilterOutlined,
   ArrowLeftOutlined,
   ReloadOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import dayjs, { type Dayjs } from "dayjs";
@@ -71,6 +72,11 @@ export default function FclLeadersSummaryPage() {
   const [selectedLeader, setSelectedLeader] = useState<ProcessedLeader | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Export State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportRange, setExportRange] = useState<[Dayjs, Dayjs]>([dayjs(), dayjs()]);
+  const [exportLoading, setExportLoading] = useState(false);
+
   const fetchSummary = useCallback(async () => {
     setLoading(true);
     try {
@@ -89,6 +95,41 @@ export default function FclLeadersSummaryPage() {
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
+
+  const handleExport = async () => {
+    if (!exportRange || exportRange.length !== 2) return;
+    setExportLoading(true);
+    try {
+      const [start, end] = exportRange;
+      const response = await fclService.exportExcel(
+        start.month() + 1,
+        start.year(),
+        end.month() + 1,
+        end.year()
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data as any]));
+      const link = document.createElement("a");
+      link.href = url;
+      const isSingleMonth = start.isSame(end, "month");
+      link.setAttribute(
+        "download",
+        isSingleMonth
+          ? `FCL_Report_${start.year()}_${String(start.month() + 1).padStart(2, "0")}.xlsx`
+          : `FCL_Report_${start.year()}_${String(start.month() + 1).padStart(2, "0")}_to_${end.year()}_${String(end.month() + 1).padStart(2, "0")}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      setIsExportModalOpen(false);
+      message.success("Excel export successful");
+    } catch (error) {
+      message.error("Failed to export Excel file");
+      console.error(error);
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // Process leader data with calculated stats
   const processedLeaders: ProcessedLeader[] = useMemo(() => {
@@ -128,9 +169,7 @@ export default function FclLeadersSummaryPage() {
 
       const matchesGender =
         selectedGender === "All" ||
-        leader.gender?.toLowerCase() === selectedGender.toLowerCase() ||
-        (selectedGender === "Male" && leader.gender === "Laki-laki") ||
-        (selectedGender === "Female" && leader.gender === "Perempuan");
+        leader.gender?.toLowerCase() === selectedGender.toLowerCase();
 
       const matchesGrade =
         selectedGrade === "All" || leader.grade === selectedGrade;
@@ -218,21 +257,14 @@ export default function FclLeadersSummaryPage() {
       dataIndex: "gender",
       key: "gender",
       filters: [
-        { text: "Male / Laki-laki", value: "Male" },
-        { text: "Female / Perempuan", value: "Female" },
+        { text: "Male", value: "male" },
+        { text: "Female", value: "female" },
       ],
-      onFilter: (value, record) =>
-        value === "Male"
-          ? record.gender === "Laki-laki" || record.gender === "Male"
-          : record.gender === "Perempuan" || record.gender === "Female",
+      onFilter: (value: any, record: any) => record.gender === value,
       render: (gender: string) => {
-        const isFemale =
-          gender?.toLowerCase() === "female" || gender === "Perempuan";
+        const isFemale = (gender || "").toLowerCase() === "female";
         return (
-          <Tag
-            color={isFemale ? "pink" : "blue"}
-            className="font-medium rounded-md"
-          >
+          <Tag color={isFemale ? "pink" : "blue"} className="rounded-full px-2 py-0.5">
             {isFemale ? "Female" : "Male"}
           </Tag>
         );
@@ -404,7 +436,7 @@ export default function FclLeadersSummaryPage() {
         />
         <Space wrap>
           <Link href="/fcl">
-            <Button icon={<TeamOutlined />}>My Cell Group</Button>
+            <Button icon={<TeamOutlined />}>My FC Group</Button>
           </Link>
           <Link href="/dashboard">
             <Button icon={<ArrowLeftOutlined />}>Back to Dashboard</Button>
@@ -419,12 +451,21 @@ export default function FclLeadersSummaryPage() {
             FCL Leaders Attendance Summary
           </Title>
           <Text type="secondary" className="text-sm">
-            Monthly overview of all cell group leaders, their member rosters, and attendance performance.
+            Monthly overview of all FC leaders, their member rosters, and attendance health.
           </Text>
         </div>
 
         {/* Month Selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            icon={<DownloadOutlined />}
+            type="primary"
+            className="bg-green-600 hover:bg-green-700 shadow-sm"
+            onClick={() => setIsExportModalOpen(true)}
+          >
+            Export Excel
+          </Button>
+          <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
           <span className="text-xs font-medium text-gray-500 uppercase">Period:</span>
           <DatePicker
             picker="month"
@@ -445,7 +486,7 @@ export default function FclLeadersSummaryPage() {
       {/* Top Aggregate KPI Cards */}
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={6} lg={4}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-gray-400 uppercase font-medium">Total Leaders</span>}
               value={aggregateStats.totalLeaders}
@@ -456,7 +497,7 @@ export default function FclLeadersSummaryPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={5}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-gray-400 uppercase font-medium">Total Teens Members</span>}
               value={aggregateStats.totalTeens}
@@ -467,7 +508,7 @@ export default function FclLeadersSummaryPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={5}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-emerald-600 uppercase font-medium">Total Present</span>}
               value={aggregateStats.totalPresent}
@@ -478,7 +519,7 @@ export default function FclLeadersSummaryPage() {
         </Col>
 
         <Col xs={12} sm={6} lg={5}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-rose-600 uppercase font-medium">Total Absent</span>}
               value={aggregateStats.totalAbsent}
@@ -489,7 +530,7 @@ export default function FclLeadersSummaryPage() {
         </Col>
 
         <Col xs={24} sm={12} lg={5}>
-          <Card bordered={false} className="shadow-sm rounded-xl border border-gray-100">
+          <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
               title={<span className="text-xs text-blue-600 uppercase font-medium">Attendance Rate</span>}
               value={aggregateStats.overallRate}
@@ -510,7 +551,7 @@ export default function FclLeadersSummaryPage() {
               <TeamOutlined />
             </div>
             <div>
-              <span className="font-semibold text-gray-800 text-base">Leader Performance List</span>
+              <span className="font-semibold text-gray-800 text-base">Leader Attendance Overview</span>
               <p className="text-xs font-normal text-gray-400">
                 Period: {filterDate.format("MMMM YYYY")} ({filteredLeaders.length} leaders shown)
               </p>
@@ -551,8 +592,8 @@ export default function FclLeadersSummaryPage() {
               className="w-36"
               options={[
                 { value: "All", label: "All Genders" },
-                { value: "Male", label: "Male" },
-                { value: "Female", label: "Female" },
+                { value: "male", label: "Male" },
+                { value: "female", label: "Female" },
               ]}
             />
 
@@ -590,6 +631,7 @@ export default function FclLeadersSummaryPage() {
       </Card>
 
       {/* Member Details Modal */}
+      {/* Member Details Modal */}
       <Modal
         title={
           <div className="flex items-center gap-3 text-base font-semibold text-gray-800">
@@ -597,7 +639,7 @@ export default function FclLeadersSummaryPage() {
               {selectedLeader?.leaderName?.charAt(0).toUpperCase()}
             </Avatar>
             <div>
-              <span>{selectedLeader?.leaderName}&apos;s Cell Group Members</span>
+              <span>{selectedLeader?.leaderName}&apos;s FC Group Members</span>
               <p className="text-xs font-normal text-gray-400">
                 Grade {selectedLeader?.grade ?? "N/A"} • {selectedLeader?.gender} • {selectedLeader?.totalMembers} Members
               </p>
@@ -615,7 +657,6 @@ export default function FclLeadersSummaryPage() {
         centered
       >
         <div className="my-4">
-          {/* Group Stats Strip inside Modal */}
           <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-xl mb-4 border border-gray-100">
             <div>
               <span className="text-xs text-gray-400 uppercase font-medium">Total Members</span>
@@ -642,6 +683,39 @@ export default function FclLeadersSummaryPage() {
               emptyText: <Empty description="No members assigned to this leader yet." />,
             }}
           />
+        </div>
+      </Modal>
+
+      {/* Export to Excel Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <DownloadOutlined className="text-green-600" />
+            <span>Export FCL Attendance to Excel</span>
+          </div>
+        }
+        open={isExportModalOpen}
+        onCancel={() => !exportLoading && setIsExportModalOpen(false)}
+        onOk={handleExport}
+        confirmLoading={exportLoading}
+        okText="Export"
+        okButtonProps={{ className: "bg-green-600 hover:bg-green-700 border-none" }}
+        centered
+      >
+        <div className="py-4">
+          <Typography.Paragraph className="text-gray-600 mb-6">
+            Select the month range for the Excel report. To export a single month, select the same month for both start and end dates.
+          </Typography.Paragraph>
+          <div className="flex flex-col gap-2">
+            <Typography.Text strong>Date Range:</Typography.Text>
+            <DatePicker.RangePicker
+              picker="month"
+              value={exportRange}
+              onChange={(dates) => dates && setExportRange(dates as [Dayjs, Dayjs])}
+              allowClear={false}
+              className="w-full h-10 rounded-lg"
+            />
+          </div>
         </div>
       </Modal>
     </div>

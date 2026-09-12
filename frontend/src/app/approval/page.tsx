@@ -19,8 +19,8 @@ const EDIT_USER_MODAL_KEY = "edit-user-form";
 
 const GRADE_OPTIONS = [7, 8, 9, 10, 11, 12].map((g) => ({ value: g, label: String(g) }));
 const GENDER_OPTIONS = [
-  { value: "Laki-laki", label: "Laki-laki" },
-  { value: "Perempuan", label: "Perempuan" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
 ];
 
 export default function UserManagementPage() {

@@ -1,15 +1,12 @@
 "use client";
 
 import React from "react";
-import { Menu, Button } from "antd";
+import { Menu } from "antd";
 import {
-  CheckOutlined,
   HomeOutlined,
   TeamOutlined,
   TrophyOutlined,
   SolutionOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -78,54 +75,46 @@ export default function DashboardSidebar({
 
   return (
     <>
+      {/* Mobile overlay */}
       <div
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity lg:hidden ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity lg:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
       />
 
+      {/* Sidebar */}
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`fixed h-screen left-0 top-0 bottom-0 bg-[#001529] shadow-lg z-50 transition-all duration-300 flex flex-col ${
+        className={`fixed h-screen left-0 top-0 bottom-0 bg-white border-r border-gray-200 shadow-sm z-50 transition-all duration-300 flex flex-col ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 ${
           isEffectivelyCollapsed ? "lg:w-20" : "lg:w-64"
         } w-64`}
       >
-        <div className="h-16 flex items-center shrink-0 px-4 transition-all duration-300 overflow-hidden">
+        {/* Logo / Brand */}
+        <div className="h-16 flex items-center shrink-0 px-4 transition-all duration-300 overflow-hidden border-b border-gray-100">
           {isEffectivelyCollapsed ? (
             <div className="w-full flex justify-center">
-              <Button
-                type="text"
-                style={{ color: "white", fontSize: "24px" }}
-                icon={<MenuUnfoldOutlined />}
-                onClick={() => setIsCollapsed(false)}
-                className="hidden lg:block"
-              />
+              <span className="text-xl font-bold text-indigo-600">A</span>
             </div>
           ) : (
-            <div className="w-full flex justify-between items-center">
-              <span className="text-white font-bold text-lg">ATeens</span>
-              <Button
-                type="text"
-                icon={<MenuFoldOutlined style={{ color: "white", fontSize: "24px" }} />}
-                onClick={() => setIsCollapsed(true)}
-                className="hidden lg:block"
-              />
+            <div className="w-full flex items-center gap-2">
+              <span className="text-xl font-bold text-indigo-600">ATeens</span>
             </div>
           )}
         </div>
 
+        {/* Navigation */}
         <div className="flex-grow overflow-y-auto overflow-x-hidden">
           <Menu
-            theme="dark"
             mode="inline"
             selectedKeys={[pathname]}
             items={getMenuItems()}
-            className="border-r-0"
+            className="border-r-0 !bg-transparent"
             inlineCollapsed={isEffectivelyCollapsed}
+            style={{ borderInlineEnd: "none" }}
           />
         </div>
       </div>

@@ -178,7 +178,7 @@ export default function PendingAlertsWidget() {
               ) : (
                 <Link href="/fcl" className="block">
                   <div className="p-2 rounded-lg bg-gray-50 hover:bg-blue-50 hover:text-blue-600 text-gray-700 text-xs font-medium transition-colors flex items-center justify-between">
-                    <span>📋 My Cell Group</span>
+                    <span>📋 My FC Group</span>
                     <RightOutlined className="text-[10px] text-gray-400" />
                   </div>
                 </Link>

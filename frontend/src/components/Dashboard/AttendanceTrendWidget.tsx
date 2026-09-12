@@ -194,7 +194,7 @@ export default function AttendanceTrendWidget() {
 
       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
         <span className="text-xs text-gray-400">
-          Aggregated data across all leader cell groups for this month.
+          Aggregated data across all leader FC groups for this month.
         </span>
         <Link href="/fcl/leaders">
           <Button

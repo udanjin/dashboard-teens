@@ -66,7 +66,7 @@ export default function LeaderCellGroupWidget() {
           setMembers(combined);
         }
       } catch (err) {
-        console.error("Failed to load leader cell group", err);
+        console.error("Failed to load leader FC group", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -152,7 +152,7 @@ export default function LeaderCellGroupWidget() {
             <TeamOutlined />
           </div>
           <div>
-            <span className="font-semibold text-gray-800 text-base">My Cell Group Overview</span>
+            <span className="font-semibold text-gray-800 text-base">My FC Group Overview</span>
             <p className="text-xs font-normal text-gray-400">
               {user?.grade ? `Grade ${user.grade}` : "Youth"}{" "}
               {user?.gender ? `• ${user.gender}` : ""} Group
@@ -197,7 +197,7 @@ export default function LeaderCellGroupWidget() {
         <div className="py-6">
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No members found in your cell group yet."
+            description="No members found in your FC group yet."
           >
             <Link href="/fcl">
               <Button type="primary" size="small" icon={<PlusOutlined />}>
@@ -217,11 +217,11 @@ export default function LeaderCellGroupWidget() {
       )}
 
       {/* Footer Navigation */}
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <span className="text-xs text-gray-400">
           Showing top members for {filterDate.format("MMMM YYYY")}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {canTakeAttendance && (
             <Link href="/fcl">
               <Button size="small" type="primary" className="text-xs">

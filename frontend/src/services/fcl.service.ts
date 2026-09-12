@@ -67,4 +67,17 @@ export const fclService = {
   rejectDeletion(memberId: number) {
     return axiosInstance.put(`/fcl/reject-deletion/${memberId}`);
   },
+
+  getLeaderSubmissionStatus() {
+    return axiosInstance.get<{ submitted: number; total: number; date: string; unsubmitted: string[] }>(
+      "/fcl/leader-submission-status"
+    );
+  },
+
+  exportExcel(startMonth: number, startYear: number, endMonth: number, endYear: number) {
+    return axiosInstance.get("/fcl/export", {
+      params: { startMonth, startYear, endMonth, endYear },
+      responseType: "blob",
+    });
+  },
 };
