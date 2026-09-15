@@ -4,9 +4,11 @@ import Role from "./Role";
 import Attendance from "./Attendance";
 import SportReport from "./SportReport";
 import CashAdjustment from "./CashAdjustment";
+import SportInventory from "./SportInventory";
 
 SportReport.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 CashAdjustment.belongsTo(User, { as: "creator", foreignKey: "createdById" });
+SportInventory.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 
 User.belongsToMany(Member, {
   through: "LeaderMember",
@@ -32,6 +34,6 @@ Role.belongsToMany(User, {
   foreignKey: "roleId",
 });
 
-export { User, Role, Member, Attendance, CashAdjustment };
+export { User, Role, Member, Attendance, CashAdjustment, SportInventory };
 export { PERMISSIONS, ROLE_PERMISSIONS, getPermissionsForRoles } from "../types";
 export type { Permission } from "../types";

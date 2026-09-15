@@ -1,6 +1,7 @@
 import { Op, Sequelize } from "sequelize";
 import SportReport from "../models/SportReport";
 import User from "../models/User";
+import SportInventory from "../models/SportInventory";
 import { NotFoundError } from "../errors/AppError";
 import { CashAdjustmentService } from "./CashAdjustmentService";
 
@@ -36,7 +37,7 @@ export class SportReportService {
     }
 
     // Parallel queries for extreme efficiency
-    const [reports, kpiResult, netAdjustment] = await Promise.all([
+    const [reports, kpiResult, netAdjustment, inventoryCost] = await Promise.all([
       SportReport.findAll({ 
         where, 
         order: [["date", "DESC"]],
@@ -53,6 +54,7 @@ export class SportReportService {
         raw: true,
       }),
       CashAdjustmentService.getNetAdjustment(),
+      SportInventory.sum("totalCost"),
     ]);
 
     const kpisRaw = kpiResult as unknown as {
@@ -64,7 +66,8 @@ export class SportReportService {
 
     const totalIncome = Number(kpisRaw?.totalIncome) || 0;
     const totalExpenses = Number(kpisRaw?.totalExpenses) || 0;
-    const netBalance = totalIncome - totalExpenses + netAdjustment;
+    const totalInventoryCost = Number(inventoryCost) || 0;
+    const netBalance = totalIncome - totalExpenses + netAdjustment - totalInventoryCost;
     const totalParticipants = Number(kpisRaw?.totalParticipants) || 0;
     const totalEvents = Number(kpisRaw?.totalEvents) || 0;
 

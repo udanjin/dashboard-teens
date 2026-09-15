@@ -21,6 +21,7 @@ import {
   DollarOutlined,
   ArrowLeftOutlined,
   TrophyOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import type { ColumnsType } from "antd/es/table";
@@ -395,6 +396,16 @@ export default function SportsPage() {
             >
               Adjust Balance
             </Button>
+          )}
+          {canViewSports && (
+            <Link href="/sports/inventory">
+              <Button
+                icon={<AppstoreOutlined />}
+                className="h-10 px-4 rounded-lg font-semibold flex items-center bg-indigo-50 text-indigo-600 border-indigo-200 hover:!bg-indigo-100 hover:!border-indigo-300"
+              >
+                View Inventory
+              </Button>
+            </Link>
           )}
         </div>
       </div>

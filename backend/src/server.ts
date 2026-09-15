@@ -63,6 +63,7 @@ export class Server extends OvernightServer {
     const { UserController } = require("./controllers/UserController");
     const { CashAdjustmentController } = require("./controllers/CashAdjustmentController");
     const { ExportController } = require("./controllers/ExportController");
+    const { SportInventoryController } = require("./controllers/SportInventoryController");
 
     super.addControllers([
       new AuthController(),
@@ -72,6 +73,7 @@ export class Server extends OvernightServer {
       new UserController(),
       new CashAdjustmentController(),
       new ExportController(),
+      new SportInventoryController(),
     ]);
 
     this.app.use(errorHandler);
@@ -83,7 +85,7 @@ export class Server extends OvernightServer {
     await sequelize.authenticate();
     console.log("Database connected");
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log("Database synced");
   }
 }

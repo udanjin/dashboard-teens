@@ -80,7 +80,7 @@ export class ExportService {
           {
             model: Member,
             as: "members",
-            attributes: ["id", "name", "grade", "gender"],
+            attributes: ["id", "name", "grade"],
             through: { attributes: [] },
           },
         ],
@@ -174,6 +174,6 @@ export class ExportService {
     });
 
     const buffer = await workbook.xlsx.writeBuffer();
-    return buffer as Buffer;
+    return buffer as unknown as Buffer;
   }
 }
