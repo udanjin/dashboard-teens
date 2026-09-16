@@ -183,6 +183,7 @@ export default function SportsPage() {
       dataIndex: "date",
       key: "date",
       width: 130,
+      align: "center",
       render: (d: string) => (
         <span className="text-xs sm:text-sm font-medium whitespace-nowrap text-gray-700">
           {formatDate(d)}
@@ -195,6 +196,7 @@ export default function SportsPage() {
       dataIndex: "code",
       key: "code",
       width: 90,
+      align: "center",
       render: (c: string) => (
         <Tag
           color={c === "Pelayan" || c === "P" ? "purple" : "cyan"}
@@ -209,6 +211,7 @@ export default function SportsPage() {
       dataIndex: "category",
       key: "category",
       width: 120,
+      align: "center",
       render: (cat: string) => (
         <Tag color={getCategoryColor(cat)} className="font-semibold text-xs rounded-md border-0">
           {cat}
@@ -232,6 +235,7 @@ export default function SportsPage() {
       dataIndex: "venue",
       key: "venue",
       width: 170,
+      align: "center",
       ellipsis: true,
       render: (v: string) => (
         <span className="text-gray-800 font-medium">{v || "—"}</span>
@@ -241,6 +245,7 @@ export default function SportsPage() {
       title: "Income",
       dataIndex: "totalpemasukan",
       key: "totalpemasukan",
+      align: "center",
       width: 130,
       render: (a: number) => (
         <span className="text-emerald-600 font-semibold text-xs sm:text-sm whitespace-nowrap">
@@ -253,6 +258,7 @@ export default function SportsPage() {
       title: "Expenses",
       dataIndex: "totalpengeluaran",
       key: "totalpengeluaran",
+      align: "center",
       width: 130,
       render: (a: number) => (
         <span className="text-rose-500 font-semibold text-xs sm:text-sm whitespace-nowrap">
@@ -265,13 +271,13 @@ export default function SportsPage() {
       title: "Net Balance",
       key: "net",
       width: 130,
+      align: "center",
       render: (_, record) => {
         const net = (record.totalpemasukan || 0) - (record.totalpengeluaran || 0);
         return (
           <span
-            className={`font-bold text-xs sm:text-sm whitespace-nowrap ${
-              net >= 0 ? "text-emerald-600" : "text-rose-600"
-            }`}
+            className={`font-bold text-xs sm:text-sm whitespace-nowrap ${net >= 0 ? "text-emerald-600" : "text-rose-600"
+              }`}
           >
             {net >= 0 ? "+" : ""}
             {formatCurrency(net)}

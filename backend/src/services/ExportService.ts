@@ -173,6 +173,9 @@ export class ExportService {
       col.width = Math.min(maxLen, 30);
     });
 
+    // Add auto-filter to the headers
+    sheet.autoFilter = "A3:H3";
+
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer as unknown as Buffer;
   }
