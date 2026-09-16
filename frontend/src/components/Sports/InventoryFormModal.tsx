@@ -55,9 +55,8 @@ export default function InventoryFormModal({ form, onFinish, loading }: Props) {
         >
           <InputNumber<number>
             min={0}
-            className="w-full h-10 rounded-lg"
-            formatter={(value) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            parser={(value) => Number(value!.replace(/Rp\s?|(,*)/g, ""))}
+            style={{ width: "100%" }}
+            prefix="Rp"
           />
         </Form.Item>
       </div>

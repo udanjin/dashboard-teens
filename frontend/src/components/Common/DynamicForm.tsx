@@ -55,14 +55,16 @@ export interface FieldConfig<T = any> {
   valuePropName?: string;
   hasFeedback?: boolean;
   dependencies?: string[];
+  prefix?: ReactNode;
+  suffix?: ReactNode;
   props?:
-    | InputProps
-    | TextAreaProps
-    | DatePickerProps
-    | SelectProps<number | string | null>
-    | SwitchProps
-    | InputNumberProps
-    | AutoCompleteProps;
+  | InputProps
+  | TextAreaProps
+  | DatePickerProps
+  | SelectProps<number | string | null>
+  | SwitchProps
+  | InputNumberProps
+  | AutoCompleteProps;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,6 +102,8 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
       return (
         <Input
           placeholder={safePlaceholder(field.placeholder)}
+          prefix={field.prefix}
+          suffix={field.suffix}
           {...(field.props as InputProps)}
           disabled={isDisabled ?? (field.props as InputProps)?.disabled}
         />
@@ -120,6 +124,8 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
       return (
         <Input.Password
           placeholder={safePlaceholder(field.placeholder)}
+          prefix={field.prefix}
+          suffix={field.suffix}
           {...(field.props as InputProps)}
           disabled={isDisabled ?? (field.props as InputProps)?.disabled}
         />
@@ -129,6 +135,8 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
         <InputNumber
           style={{ width: "100%" }}
           placeholder={safePlaceholder(field.placeholder)}
+          prefix={field.prefix}
+          suffix={field.suffix}
           formatter={currencyFormatter}
           parser={currencyParser}
           {...(field.props as InputNumberProps)}
@@ -140,6 +148,8 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
         <InputNumber
           style={{ width: "100%" }}
           placeholder={safePlaceholder(field.placeholder)}
+          prefix={field.prefix}
+          suffix={field.suffix}
           onKeyDown={restrictToNumericInput}
           formatter={currencyFormatter}
           parser={currencyParser}

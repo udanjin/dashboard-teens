@@ -146,16 +146,17 @@ export default function LeaderCellGroupWidget() {
     <Card
       bordered={false}
       className="shadow-sm hover:shadow-md transition-shadow rounded-xl border border-gray-100 mb-6"
+      headStyle={{ whiteSpace: "normal" }}
       title={
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg text-base">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg text-base flex-shrink-0">
             <TeamOutlined />
           </div>
-          <div>
-            <span className="font-semibold text-gray-800 text-base">My FC Group Overview</span>
-            <p className="text-xs font-normal text-gray-400">
-              {user?.grade ? `Grade ${user.grade}` : "Youth"}{" "}
-              {user?.gender ? `• ${user.gender}` : ""} Group
+          <div className="flex-1 min-w-0 whitespace-normal">
+            <span className="font-semibold text-gray-800 text-base leading-tight block">My FC</span>
+            <p className="text-xs font-normal text-gray-400 m-0 mt-0.5 leading-tight">
+              {user?.grade ? `Grade ${user.grade}` : "Youth"}
+              {user?.gender ? ` • ${user.gender}` : ""}
             </p>
           </div>
         </div>
@@ -172,20 +173,20 @@ export default function LeaderCellGroupWidget() {
     >
       {/* Top Group Stats Strip */}
       <div className="grid grid-cols-4 gap-2 sm:gap-4 mb-4 p-3 bg-gray-50/80 rounded-xl border border-gray-100 text-center">
-        <div>
-          <span className="text-[11px] text-gray-400 uppercase font-medium">Members</span>
+        <div className="flex flex-col items-center justify-center min-w-0">
+          <span className="text-[10px] sm:text-[11px] text-gray-400 uppercase font-medium truncate w-full">Members</span>
           <p className="text-base sm:text-lg font-bold text-gray-800 m-0">{totalMembers}</p>
         </div>
-        <div className="border-l border-gray-200">
-          <span className="text-[11px] text-emerald-600 uppercase font-medium">Present</span>
+        <div className="flex flex-col items-center justify-center border-l border-gray-200 min-w-0">
+          <span className="text-[10px] sm:text-[11px] text-emerald-600 uppercase font-medium truncate w-full">Present</span>
           <p className="text-base sm:text-lg font-bold text-emerald-600 m-0">{totalPresent}</p>
         </div>
-        <div className="border-l border-gray-200">
-          <span className="text-[11px] text-rose-600 uppercase font-medium">Absent</span>
+        <div className="flex flex-col items-center justify-center border-l border-gray-200 min-w-0">
+          <span className="text-[10px] sm:text-[11px] text-rose-600 uppercase font-medium truncate w-full">Absent</span>
           <p className="text-base sm:text-lg font-bold text-rose-600 m-0">{totalAbsent}</p>
         </div>
-        <div className="border-l border-gray-200">
-          <span className="text-[11px] text-blue-600 uppercase font-medium">Group Rate</span>
+        <div className="flex flex-col items-center justify-center border-l border-gray-200 min-w-0">
+          <span className="text-[10px] sm:text-[11px] text-blue-600 uppercase font-medium truncate w-full">Rate</span>
           <p className="text-base sm:text-lg font-bold text-blue-600 m-0">{groupRate}%</p>
         </div>
       </div>

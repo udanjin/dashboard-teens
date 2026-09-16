@@ -165,26 +165,26 @@ export default function SportsSummaryWidget() {
                 {recentEvents.map((evt) => (
                   <div
                     key={evt.id}
-                    className="py-2.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded-lg transition-colors"
+                    className="py-2.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded-lg transition-colors gap-2"
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       <Tag
                         color={getCategoryColor(evt.category)}
-                        className="font-medium text-xs rounded border-0 w-20 text-center"
+                        className="font-medium text-xs rounded border-0 w-20 text-center flex-shrink-0 m-0"
                       >
                         {evt.category}
                       </Tag>
-                      <div>
-                        <p className="text-sm font-medium text-gray-800 m-0 leading-snug">
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-sm font-medium text-gray-800 m-0 leading-snug truncate">
                           {evt.venue || "Venue not specified"}
                         </p>
-                        <span className="text-xs text-gray-400">
-                          {formatDate(evt.date)} • {evt.participant} Participants
+                        <span className="text-xs text-gray-400 block truncate">
+                          {formatDate(evt.date)} • {evt.participant} Pax
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <p
                         className={`text-sm font-semibold m-0 ${
                           evt.totalpemasukan - evt.totalpengeluaran >= 0

@@ -99,14 +99,14 @@ export default function SportsEventForm({ form, onFinish, loading }: SportsEvent
   useEffect(() => {
     if (chipInAmount !== undefined && participant !== undefined && absenteesCount !== undefined) {
       const pemasukanDetails = [];
-      
+
       if (participant > 0) {
         pemasukanDetails.push({
           keterangan: `Chip-in Hadir (${participant} org)`,
           cost: participant * chipInAmount,
         });
       }
-      
+
       if (absenteesCount > 0) {
         const penalty = Math.max(0, chipInAmount - 10000);
         pemasukanDetails.push({
@@ -125,8 +125,8 @@ export default function SportsEventForm({ form, onFinish, loading }: SportsEvent
       fields={dynamicFields}
       onFinish={onFinish}
       loading={loading}
-      initialValues={{ 
-        expenseDetails: [{}], 
+      initialValues={{
+        expenseDetails: [{}],
         pemasukanDetails: [],
         chipInAmount: 25000,
         participant: 0,
