@@ -5,6 +5,7 @@ import { message, Spin } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { validateLogin } from "@/lib/validator";
 import {
   inputWrapperClasses,
   inputIconClasses,
@@ -43,8 +44,9 @@ export default function LoginForm({
     e.preventDefault();
     setLoginError(null);
 
-    if (!loginUsername || !loginPassword) {
-      setLoginError("Please enter both username and password.");
+    const error = validateLogin(loginUsername, loginPassword);
+    if (error) {
+      setLoginError(error);
       return;
     }
 

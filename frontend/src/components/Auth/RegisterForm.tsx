@@ -13,6 +13,7 @@ import {
 import type { Dayjs } from "dayjs";
 import { authService } from "@/services/auth.service";
 import type { RegisterRequest } from "@/types";
+import { validateRegistration } from "@/lib/validator";
 import {
   inputWrapperClasses,
   inputIconClasses,
@@ -66,38 +67,18 @@ export default function RegisterForm({
     setRegError(null);
     setRegSuccess(null);
 
-    if (!regRoles.length) {
-      setRegError("Please select at least one ministry role.");
-      return;
-    }
-    if (!regUsername || regUsername.length < 4) {
-      setRegError("Username must be at least 4 characters long.");
-      return;
-    }
-    if (regUsername.includes(" ")) {
-      setRegError("Username cannot contain spaces.");
-      return;
-    }
-    if (!regDob) {
-      setRegError("Please select your date of birth.");
-      return;
-    }
-    if (regRoles.includes("leader")) {
-      if (!regGender) {
-        setRegError("Gender is required for Leaders.");
-        return;
-      }
-      if (!regGrade) {
-        setRegError("Grade is required for Leaders.");
-        return;
-      }
-    }
-    if (!regPassword || regPassword.length < 6) {
-      setRegError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (regPassword !== regConfirm) {
-      setRegError("Passwords do not match!");
+    const validationError = validateRegistration({
+      roles: regRoles,
+      username: regUsername,
+      dob: regDob,
+      gender: regGender,
+      grade: regGrade,
+      password: regPassword,
+      confirmPassword: regConfirm,
+    });
+
+    if (validationError) {
+      setRegError(validationError);
       return;
     }
 

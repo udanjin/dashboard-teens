@@ -102,8 +102,6 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
       return (
         <Input
           placeholder={safePlaceholder(field.placeholder)}
-          prefix={field.prefix}
-          suffix={field.suffix}
           {...(field.props as InputProps)}
           disabled={isDisabled ?? (field.props as InputProps)?.disabled}
         />
@@ -124,8 +122,6 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
       return (
         <Input.Password
           placeholder={safePlaceholder(field.placeholder)}
-          prefix={field.prefix}
-          suffix={field.suffix}
           {...(field.props as InputProps)}
           disabled={isDisabled ?? (field.props as InputProps)?.disabled}
         />
@@ -135,8 +131,6 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
         <InputNumber
           style={{ width: "100%" }}
           placeholder={safePlaceholder(field.placeholder)}
-          prefix={field.prefix}
-          suffix={field.suffix}
           formatter={currencyFormatter}
           parser={currencyParser}
           {...(field.props as InputNumberProps)}
@@ -148,8 +142,6 @@ function renderComponent<T = any>(field: FieldConfig<T>) {
         <InputNumber
           style={{ width: "100%" }}
           placeholder={safePlaceholder(field.placeholder)}
-          prefix={field.prefix}
-          suffix={field.suffix}
           onKeyDown={restrictToNumericInput}
           formatter={currencyFormatter}
           parser={currencyParser}
