@@ -57,7 +57,6 @@ export const CATEGORY_OPTIONS = [
   { value: "Basket" as const, label: "Basket" },
   { value: "Futsal" as const, label: "Futsal" },
   { value: "Badminton" as const, label: "Badminton" },
-  { value: "Football" as const, label: "Football" },
 ];
 
 export interface SportReportKpis {

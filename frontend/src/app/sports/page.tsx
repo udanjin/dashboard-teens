@@ -170,8 +170,6 @@ export default function SportsPage() {
         return "blue";
       case "basket":
         return "orange";
-      case "football":
-        return "cyan";
       default:
         return "purple";
     }
