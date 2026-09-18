@@ -132,7 +132,7 @@ export default function DashboardHeader({
             type="text"
             icon={<MenuOutlined />}
             onClick={onMenuClick}
-            className="lg:hidden"
+            className="md:hidden lg:hidden"
           />
           <div className="flex items-center gap-6 ml-auto">
             {canManageDeletions && (

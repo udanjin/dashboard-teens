@@ -5,7 +5,8 @@ import { PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import type { FormInstance } from "antd";
 import DynamicForm, { type FieldConfig } from "@/components/Common/DynamicForm";
 import type { AddMemberFormValues } from "@/types";
-import { phoneValidator } from "@/lib/validator";
+import { phoneValidator, createAgeValidator } from "@/lib/validator";
+import dayjs from "dayjs";
 
 interface AddMemberFormProps {
   form: FormInstance;
@@ -41,7 +42,10 @@ export default function AddMemberForm({ form, onFinish, loading }: AddMemberForm
                     <Form.Item
                       {...restField}
                       name={[name, "dob"]}
-                      rules={[{ required: true, message: "Please select date of birth!" }]}
+                      rules={[
+                        { required: true, message: "Please select date of birth!" },
+                        createAgeValidator(form, "grade")
+                      ]}
                       className="flex-1 mb-0"
                     >
                       <DatePicker placeholder="Date of Birth" className="w-full" />

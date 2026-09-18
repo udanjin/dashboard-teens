@@ -24,9 +24,12 @@ export class AuthService {
       password: hashedPassword,
       status: "pending",
       gender: data.gender,
-      grade: data.grade,
       dob: data.dob,
-      requestedRoles: data.requestedRoles,
+      name: data.name || null,
+      requestedRoles: {
+        roles: data.requestedRoles,
+        requestedGrade: data.grade,
+      },
     });
   }
 
@@ -40,6 +43,11 @@ export class AuthService {
           attributes: ["name"],
           through: { attributes: [] },
         },
+        {
+          model: require("../models/FamilyCell").default,
+          as: "familyCell",
+          attributes: ["grade", "name"],
+        }
       ],
     });
 
@@ -60,11 +68,13 @@ export class AuthService {
     const payload = {
       userId: user.id,
       username: user.username,
-      name: user.username,
+      name: user.name || user.username,
+      dob: user.dob,
       roles: roleNames,
       permissions,
       gender: user.gender,
-      grade: user.grade,
+      grade: (user as any).familyCell?.grade || null,
+      fcId: user.fcId,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET!, {
@@ -74,11 +84,13 @@ export class AuthService {
     const userResponse = {
       id: user.id,
       username: user.username,
-      name: user.username,
+      name: user.name || user.username,
+      dob: user.dob,
       roles: roleNames,
       permissions,
       gender: user.gender,
-      grade: user.grade,
+      grade: (user as any).familyCell?.grade || null,
+      fcId: user.fcId,
     };
 
     return { token, user: userResponse };
@@ -87,7 +99,7 @@ export class AuthService {
   static async getPendingUsers() {
     return await User.findAll({
       where: { status: "pending" },
-      attributes: ["id", "username", "status", "createdAt", "requestedRoles", "grade", "gender"],
+      attributes: ["id", "username", "status", "createdAt", "requestedRoles", "gender"],
     });
   }
 
@@ -95,13 +107,22 @@ export class AuthService {
     return await Role.findAll({ attributes: ["id", "name"] });
   }
 
-  static async approveUser(id: number, roleIds: number[]) {
+  static async approveUser(id: number, data: { roleIds: number[], fcId?: number, createFc?: boolean, fcGrade?: number }) {
     const user = await User.findByPk(id);
     if (!user) throw new NotFoundError("User not found");
 
+    if (data.createFc && data.fcGrade !== undefined) {
+      const FamilyCell = require("../models/FamilyCell").default;
+      const fcName = `Grade ${data.fcGrade} (${user.username}'s Group)`;
+      const fc = await FamilyCell.create({ name: fcName, grade: data.fcGrade });
+      user.fcId = fc.id;
+    } else if (data.fcId) {
+      user.fcId = data.fcId;
+    }
+
     user.status = "approved";
     await user.save();
-    await (user as any).setRoles(roleIds);
+    await (user as any).setRoles(data.roleIds);
 
     return user;
   }

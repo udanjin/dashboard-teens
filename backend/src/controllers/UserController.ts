@@ -8,12 +8,29 @@ import { NotFoundError } from "../errors/AppError";
 
 @Controller("api/users")
 export class UserController {
+  @Put("profile")
+  @Middleware([authMiddleware])
+  public async updateProfile(req: Request, res: Response): Promise<void> {
+    const userId = (req as any).user.userId;
+    const { name, dob } = req.body;
+
+    const user = await User.findByPk(userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    if (name !== undefined) user.name = name;
+    if (dob !== undefined) user.dob = dob;
+
+    await user.save();
+
+    res.json({ message: "Profile updated successfully" });
+  }
+
   @Get("")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_VIEW)])
   public async getApprovedUsers(req: Request, res: Response): Promise<void> {
     const users = await User.findAll({
       where: { status: "approved" },
-      attributes: ["id", "username", "status", "createdAt", "grade", "gender", "requestedRoles"],
+      attributes: ["id", "username", "status", "createdAt", "gender", "requestedRoles", "fcId"],
       include: [
         {
           model: Role,
@@ -21,6 +38,11 @@ export class UserController {
           attributes: ["id", "name"],
           through: { attributes: [] },
         },
+        {
+          model: require("../models/FamilyCell").default,
+          as: "familyCell",
+          attributes: ["id", "name", "grade"],
+        }
       ],
       order: [["createdAt", "DESC"]],
     });
@@ -32,12 +54,12 @@ export class UserController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.APPROVAL_MANAGE)])
   public async updateUser(req: Request, res: Response): Promise<void> {
     const userId = Number(req.params.id);
-    const { roleIds, grade, gender } = req.body;
+    const { roleIds, fcId, gender } = req.body;
 
     const user = await User.findByPk(userId);
     if (!user) throw new NotFoundError("User not found");
 
-    if (grade !== undefined) user.grade = grade;
+    if (fcId !== undefined) user.fcId = fcId;
     if (gender !== undefined) user.gender = gender;
 
     await user.save();

@@ -333,22 +333,29 @@ export class FclService {
       attributes: ["id", "name", "dob", "deletionReason"],
       include: [
         {
-          model: User,
-          as: "leaders",
-          attributes: ["username", "grade", "gender"],
-          through: { attributes: [] },
+          model: require("../models/FamilyCell").default,
+          as: "familyCell",
+          attributes: ["name", "grade"],
+          include: [
+            {
+              model: User,
+              as: "leaders",
+              attributes: ["username", "gender"],
+            }
+          ]
         },
       ],
     });
 
     return pendingMembers.map((member) => {
-      const leader = member.leaders?.[0] ?? null;
+      const fc = member.familyCell as any;
+      const leader = fc?.leaders?.[0] ?? null;
       return {
         id: member.id,
         name: member.name,
         dob: member.dob,
         deletionReason: member.deletionReason,
-        grade: leader?.grade ?? null,
+        grade: fc?.grade ?? null,
         gender: leader?.gender ?? null,
         leaderName: leader?.username ?? "N/A",
       };
@@ -381,12 +388,19 @@ export class FclService {
     await member.save();
   }
 
-  static async getBirthdays() {
-    const query = `
-      SELECT dob AS "date", username AS "name", 'User' AS "type" FROM users WHERE dob IS NOT NULL
-      UNION ALL
-      SELECT dob AS "date", name, 'Member' AS "type" FROM members WHERE dob IS NOT NULL;
+  static async getBirthdays(fcId: number | null) {
+    let query = `
+      SELECT dob AS "date", COALESCE(name, username) AS "name", 'User' AS "type" FROM users WHERE dob IS NOT NULL
     `;
-    return await sequelize.query(query, { type: "SELECT" });
+    const replacements: any = {};
+    if (fcId) {
+      query += `
+        UNION ALL
+        SELECT dob AS "date", name, 'Member' AS "type" FROM members WHERE dob IS NOT NULL AND "fcId" = :fcId
+      `;
+      replacements.fcId = fcId;
+    }
+    
+    return await sequelize.query(query, { type: "SELECT", replacements });
   }
 }

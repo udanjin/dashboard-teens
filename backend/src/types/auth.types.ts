@@ -5,10 +5,12 @@ export interface JwtPayload {
   userId: number;
   username: string;
   name: string;
+  dob?: string;
   roles: string[];
   permissions: Permission[];
   gender?: string;
   grade?: number;
+  fcId?: number | null;
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -33,8 +35,10 @@ export interface UserResponse {
   id: number;
   username: string;
   name: string;
+  dob?: string;
   roles: string[];
   permissions: Permission[];
   gender?: string;
   grade?: number;
+  fcId?: number | null;
 }

@@ -1,7 +1,7 @@
 // src/lib/validator.ts
 import { parsePhoneNumberWithError } from "libphonenumber-js";
-import type { Rule } from "antd/es/form";
-import type { Dayjs } from "dayjs";
+import type { Rule, FormInstance } from "antd/es/form";
+import dayjs, { type Dayjs } from "dayjs";
 
 export const phoneValidator: Rule = () => ({
     validator(_, value: string) {
@@ -73,3 +73,20 @@ export const validateRegistration = (data: RegistrationValidationData): string |
     }
     return null;
 };
+
+export const createAgeValidator = (form: FormInstance, gradeFieldName: string): Rule => () => ({
+    validator(_, value: any) {
+        if (!value) return Promise.resolve();
+        const grade = form.getFieldValue(gradeFieldName);
+        if (!grade) return Promise.resolve();
+        
+        const age = dayjs().diff(value, 'year');
+        const expectedMinAge = grade + 4;
+        const expectedMaxAge = grade + 6;
+        
+        if (age >= expectedMinAge && age <= expectedMaxAge) {
+            return Promise.resolve();
+        }
+        return Promise.reject(new Error(`Age must be between ${expectedMinAge} and ${expectedMaxAge} for Grade ${grade}`));
+    }
+});

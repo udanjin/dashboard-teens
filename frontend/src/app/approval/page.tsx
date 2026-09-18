@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Button, Form, Tag, message, Space, Popconfirm, Typography, Tabs } from "antd";
+import { Button, Form, Tag, message, Space, Popconfirm, Typography, Tabs, Modal, Select, Switch } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useModal } from "@/stores/modalStore";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
@@ -28,7 +28,7 @@ export default function UserManagementPage() {
   const canAccessApproval = hasPermission(PERMISSIONS.APPROVAL_VIEW) || hasPermission(PERMISSIONS.APPROVAL_MANAGE);
   const canManageApproval = hasPermission(PERMISSIONS.APPROVAL_MANAGE);
 
-  const [approvalForm] = Form.useForm<{ roleIds: number[] }>();
+  const [approvalForm] = Form.useForm<{ roleIds: number[]; createFc?: boolean; fcId?: number; fcGrade?: number }>();
   const [editForm] = Form.useForm<UpdateUserPayload>();
   
   const approvalModal = useModal(APPROVAL_MODAL_KEY);
@@ -37,6 +37,7 @@ export default function UserManagementPage() {
   const [selectedPendingUser, setSelectedPendingUser] = useState<PendingUser | null>(null);
   const [selectedApprovedUser, setSelectedApprovedUser] = useState<ApprovedUser | null>(null);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [familyCells, setFamilyCells] = useState<{ id: number; name: string; grade: number }[]>([]);
 
   const fetchPendingUsers = useCallback(async () => {
     const res = await userService.getPendingUsers();
@@ -53,6 +54,7 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     userService.getRoles().then((res) => setAvailableRoles(res.data)).catch(() => {});
+    userService.getFamilyCells().then((res) => setFamilyCells(res.data)).catch(() => {});
   }, []);
 
   const roleOptions: FieldOption[] = availableRoles.map((r) => ({
@@ -94,22 +96,30 @@ export default function UserManagementPage() {
         placeholder: "Select gender (Optional)",
         props: { allowClear: true },
       },
+    ],
+    [
       {
-        name: "grade",
-        label: "Grade",
+        name: "fcId",
+        label: "Family Cell",
         componentType: "select",
-        options: GRADE_OPTIONS,
-        placeholder: "Select grade (Optional)",
-        props: { allowClear: true },
+        options: familyCells.map((fc) => ({ value: fc.id, label: `${fc.name} (Grade ${fc.grade})` })),
+        placeholder: "Assign to Family Cell (Optional)",
+        props: { allowClear: true, showSearch: true, optionFilterProp: "label" },
       },
     ]
   ];
 
-  const handleApprove = async (values: { roleIds: number[] }) => {
+  const handleApprove = async () => {
     if (!selectedPendingUser) return;
     approvalModal.setLoading(true);
     try {
-      await userService.approveUser(selectedPendingUser.id, { roleIds: values.roleIds });
+      const values = await approvalForm.validateFields();
+      await userService.approveUser(selectedPendingUser.id, {
+        roleIds: values.roleIds,
+        fcId: values.createFc ? undefined : values.fcId,
+        createFc: values.createFc,
+        fcGrade: values.createFc ? values.fcGrade : undefined,
+      });
       message.success(`User ${selectedPendingUser.username} has been approved.`);
       approvalModal.close();
       approvalForm.resetFields();
@@ -173,20 +183,22 @@ export default function UserManagementPage() {
     {
       title: "Requested Roles", dataIndex: "requestedRoles", key: "requestedRoles",
       render: (_: unknown, record: PendingUser) => {
+        const rolesArray = record.requestedRoles?.roles || [];
+        const reqGrade = record.requestedRoles?.requestedGrade || null;
         return (
           <Space direction="vertical" size="small">
-            {record.requestedRoles && record.requestedRoles.length > 0 ? (
+            {rolesArray.length > 0 ? (
               <Space wrap>
-                {record.requestedRoles.map((role) => (
+                {rolesArray.map((role) => (
                   <Tag color="purple" key={role}>{role.toUpperCase()}</Tag>
                 ))}
               </Space>
             ) : (
               <Typography.Text type="secondary">None</Typography.Text>
             )}
-            {(record.grade || record.gender) && (
+            {(reqGrade || record.gender) && (
               <Typography.Text type="secondary" style={{ fontSize: "12px" }}>
-                Group: {record.grade ? `Grade ${record.grade}` : "Any"} {record.gender ? `(${record.gender})` : ""}
+                Group: {reqGrade ? `Grade ${reqGrade}` : "Any"} {record.gender ? `(${record.gender})` : ""}
               </Typography.Text>
             )}
           </Space>
@@ -205,6 +217,13 @@ export default function UserManagementPage() {
                 <Button type="primary" size="small" onClick={() => {
                   setSelectedPendingUser(record);
                   approvalForm.resetFields();
+                  // Pre-fill the grade if they requested one
+                  const reqGrade = record.requestedRoles?.requestedGrade;
+                  approvalForm.setFieldsValue({
+                    createFc: true,
+                    fcGrade: reqGrade,
+                    roleIds: [], // User still needs to select roles
+                  });
                   approvalModal.open();
                 }}>
                   Approve
@@ -232,10 +251,10 @@ export default function UserManagementPage() {
     {
       title: "Details", key: "details",
       render: (_: unknown, record: ApprovedUser) => {
-        if (!record.grade && !record.gender) return <Typography.Text type="secondary">-</Typography.Text>;
+        if (!record.familyCell && !record.gender) return <Typography.Text type="secondary">-</Typography.Text>;
         return (
            <Typography.Text type="secondary" style={{ fontSize: "12px" }}>
-            {record.grade ? `Grade ${record.grade}` : "Any"} {record.gender ? `(${record.gender})` : ""}
+            {record.familyCell ? `${record.familyCell.name}` : "No FC"} {record.gender ? `(${record.gender})` : ""}
           </Typography.Text>
         )
       }
@@ -257,7 +276,7 @@ export default function UserManagementPage() {
                   setSelectedApprovedUser(record);
                   editForm.setFieldsValue({
                     roleIds: record.roles?.map((r) => r.id) || [],
-                    grade: record.grade,
+                    fcId: record.fcId,
                     gender: record.gender
                   });
                   editModal.open();
@@ -321,20 +340,77 @@ export default function UserManagementPage() {
         <Tabs defaultActiveKey="pending" items={items} />
       </div>
 
-      <GlobalFormModal
-        title={`Approve and Assign Roles for ${selectedPendingUser?.username}`}
+      <Modal
+        title={`Approve ${selectedPendingUser?.username}`}
         open={approvalModal.isOpen}
         onCancel={() => {
           approvalModal.close();
           approvalForm.resetFields();
           setSelectedPendingUser(null);
         }}
-        form={approvalForm}
+        onOk={handleApprove}
         confirmLoading={approvalModal.loading}
         okText="Approve & Assign"
+        destroyOnClose
       >
-        <DynamicForm form={approvalForm} fields={approvalFields} onFinish={handleApprove} />
-      </GlobalFormModal>
+        <div className="mb-4">
+          <Typography.Text type="secondary">
+            Assign the required roles and organize the user into a Family Cell.
+          </Typography.Text>
+        </div>
+        <Form form={approvalForm} layout="vertical" preserve={false}>
+          <Form.Item
+            name="roleIds"
+            label="Roles to Assign"
+            rules={[{ required: true, message: "Please select at least one role" }]}
+          >
+            <Select
+              mode="multiple"
+              options={roleOptions}
+              placeholder="Select roles"
+              allowClear
+            />
+          </Form.Item>
+
+          <Form.Item name="createFc" valuePropName="checked">
+            <Switch checkedChildren="Create New Family Cell" unCheckedChildren="Assign to Existing Family Cell" />
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.createFc !== currentValues.createFc}
+          >
+            {({ getFieldValue }) => {
+              const isCreateNew = getFieldValue("createFc");
+              return isCreateNew ? (
+                <Form.Item
+                  name="fcGrade"
+                  label="Grade for New Family Cell"
+                  rules={[{ required: true, message: "Please select a grade for the new FC" }]}
+                >
+                  <Select options={GRADE_OPTIONS} placeholder="Select grade" />
+                </Form.Item>
+              ) : (
+                <Form.Item
+                  name="fcId"
+                  label="Select Existing Family Cell"
+                  rules={[{ required: true, message: "Please select an existing FC" }]}
+                >
+                  <Select
+                    options={familyCells.map((fc) => ({
+                      value: fc.id,
+                      label: `${fc.name} (Grade ${fc.grade})`,
+                    }))}
+                    placeholder="Select Family Cell"
+                    showSearch
+                    optionFilterProp="label"
+                  />
+                </Form.Item>
+              );
+            }}
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <GlobalFormModal
         title={`Edit details for ${selectedApprovedUser?.username}`}

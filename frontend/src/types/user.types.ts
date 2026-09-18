@@ -3,7 +3,7 @@ export interface PendingUser {
   username: string;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
-  requestedRoles?: string[];
+  requestedRoles?: { roles: string[], requestedGrade?: number };
   grade?: number;
   gender?: string;
 }
@@ -18,17 +18,21 @@ export interface ApprovedUser {
   username: string;
   status: "approved";
   createdAt: string;
-  grade?: number;
+  fcId?: number;
+  familyCell?: { id: number; name: string; grade: number };
   gender?: string;
   roles?: Role[];
 }
 
 export interface ApproveUserPayload {
   roleIds: number[];
+  fcId?: number;
+  createFc?: boolean;
+  fcGrade?: number;
 }
 
 export interface UpdateUserPayload {
   roleIds?: number[];
-  grade?: number;
+  fcId?: number;
   gender?: string;
 }

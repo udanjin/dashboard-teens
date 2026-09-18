@@ -5,10 +5,12 @@ import Role from "./Role";
 class User extends Model {
   public id!: number;
   public username!: string;
+  public name!: string | null;
   public password!: string;
   public status!: "pending" | "approved" | "rejected";
-  public grade!: number;
+  public fcId!: number | null;
   public gender!: "Male" | "Female";
+  public dob!: Date | string;
   public requestedRoles!: string[] | null;
   public readonly roles?: Role[];
 }
@@ -25,6 +27,10 @@ User.init(
       allowNull: false,
       unique: true, // Ensure unique username
     },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -34,7 +40,7 @@ User.init(
       allowNull: false,
       defaultValue: "pending",
     },
-    grade: {
+    fcId: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },

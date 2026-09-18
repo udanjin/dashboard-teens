@@ -10,6 +10,10 @@ export const userService = {
     return axiosInstance.get<Role[]>("/auth/roles");
   },
 
+  getFamilyCells() {
+    return axiosInstance.get<{ id: number; name: string; grade: number }[]>("/family-cells");
+  },
+
   approveUser(userId: string, payload: ApproveUserPayload) {
     return axiosInstance.put(`/auth/approve/${userId}`, payload);
   },
@@ -28,5 +32,9 @@ export const userService = {
 
   deleteUser(userId: string) {
     return axiosInstance.delete(`/users/${userId}`);
+  },
+
+  updateProfile(payload: { name?: string; dob?: string }) {
+    return axiosInstance.put("/users/profile", payload);
   },
 };

@@ -5,22 +5,17 @@ import Attendance from "./Attendance";
 import SportReport from "./SportReport";
 import CashAdjustment from "./CashAdjustment";
 import SportInventory from "./SportInventory";
+import FamilyCell from "./FamilyCell";
 
 SportReport.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 CashAdjustment.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 SportInventory.belongsTo(User, { as: "creator", foreignKey: "createdById" });
 
-User.belongsToMany(Member, {
-  through: "LeaderMember",
-  as: "members",
-  foreignKey: "leaderId",
-});
+FamilyCell.hasMany(User, { as: "leaders", foreignKey: "fcId" });
+User.belongsTo(FamilyCell, { as: "familyCell", foreignKey: "fcId" });
 
-Member.belongsToMany(User, {
-  through: "LeaderMember",
-  as: "leaders",
-  foreignKey: "memberId",
-});
+FamilyCell.hasMany(Member, { as: "members", foreignKey: "fcId" });
+Member.belongsTo(FamilyCell, { as: "familyCell", foreignKey: "fcId" });
 
 User.belongsToMany(Role, {
   through: "UserRole",
@@ -34,6 +29,6 @@ Role.belongsToMany(User, {
   foreignKey: "roleId",
 });
 
-export { User, Role, Member, Attendance, CashAdjustment, SportInventory };
+export { User, Role, Member, Attendance, CashAdjustment, SportInventory, FamilyCell };
 export { PERMISSIONS, ROLE_PERMISSIONS, getPermissionsForRoles } from "../types";
 export type { Permission } from "../types";

@@ -22,6 +22,7 @@ export interface UserInfo {
   id: number;
   name: string;
   username: string;
+  dob?: string;
   roles: string[];
   permissions: Permission[];
   grade?: number;

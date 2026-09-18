@@ -16,4 +16,7 @@ export const loginSchema = z.object({
 
 export const approveUserSchema = z.object({
   roleIds: z.array(z.number()),
+  fcId: z.number().optional(),
+  createFc: z.boolean().optional(),
+  fcGrade: z.number().optional(),
 });

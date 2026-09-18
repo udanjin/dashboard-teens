@@ -141,9 +141,10 @@ export class FclController {
 
   @Get("birthdays")
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.DASHBOARD_VIEW)])
-  public async getBirthday(_req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  public async getBirthday(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const birthdays = await FclService.getBirthdays();
+      const fcId = req.user?.fcId || null;
+      const birthdays = await FclService.getBirthdays(fcId);
       res.json(birthdays);
     } catch (err) {
       next(err);

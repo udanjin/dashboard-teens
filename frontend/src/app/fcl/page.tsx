@@ -46,6 +46,7 @@ import DataTable from "@/components/Common/DataTable";
 import GlobalFormModal from "@/components/Common/GlobalFormModal";
 import AddMemberForm from "@/components/FCL/AddMemberForm";
 import AttendanceModal from "@/components/FCL/AttendanceModal";
+import UpcomingBirthdays from "@/components/Dashboard/UpcomingBirthdays";
 import DeleteMemberModal from "@/components/FCL/DeleteMemberModal";
 import EditMemberModal, { EDIT_MEMBER_MODAL_KEY } from "@/components/FCL/EditMemberModal";
 import { PERMISSIONS } from "@/types";
@@ -390,6 +391,12 @@ export default function FclPage() {
               valueStyle={{ color: "#2563eb", fontSize: "1.75rem", fontWeight: "bold" }}
             />
           </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24}>
+          <UpcomingBirthdays />
         </Col>
       </Row>
 

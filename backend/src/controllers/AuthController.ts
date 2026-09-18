@@ -95,7 +95,7 @@ export class AuthController {
     try {
       const id = parseInt(req.params.id, 10);
       const data = approveUserSchema.parse(req.body);
-      const user = await AuthService.approveUser(id, data.roleIds);
+      const user = await AuthService.approveUser(id, data);
       res.json({ message: `User ${user.username} has been approved.` });
     } catch (err) {
       next(err);

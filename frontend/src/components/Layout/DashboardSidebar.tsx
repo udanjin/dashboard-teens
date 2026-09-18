@@ -7,6 +7,7 @@ import {
   TeamOutlined,
   TrophyOutlined,
   SolutionOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -61,6 +62,7 @@ export default function DashboardSidebar({
     if (hasPermission(PERMISSIONS.APPROVAL_VIEW)) {
       items.push({ key: "/approval", icon: <TeamOutlined />, label: "User Management" });
     }
+    items.push({ key: "/profile", icon: <UserOutlined />, label: "Profile" });
     return items.map((item) => ({
       ...item,
       label: (

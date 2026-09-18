@@ -1,6 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/db";
-import User from "./User";
+import FamilyCell from "./FamilyCell";
 
 class Member extends Model {
   public id!: number;
@@ -8,9 +8,9 @@ class Member extends Model {
   public status!: "active" | "pending_deletion";
   public deletionReason!: string | null;
   public dob!: Date;
-  public grade!: number;
+  public fcId!: number | null;
   public phoneNumber!: string;
-  public readonly leaders?: User[];
+  public readonly familyCell?: FamilyCell;
 }
 
 Member.init(
@@ -25,9 +25,9 @@ Member.init(
       allowNull: false,
     },
 
-    grade: {
+    fcId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
 
     status: {
