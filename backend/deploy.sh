@@ -13,6 +13,6 @@ echo "🚀 Building, pushing, and deploying version: $VERSION..."
 
 docker build -t $IMAGE .
 docker push $IMAGE
-gcloud run deploy api-teens --image $IMAGE --region asia-southeast1 --platform managed
+gcloud.cmd run deploy api-teens --image $IMAGE --region asia-southeast1 --platform managed
 
 echo "✅ Deployment complete!"
