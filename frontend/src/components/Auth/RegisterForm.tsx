@@ -89,8 +89,8 @@ export default function RegisterForm({
         username: regUsername,
         password: regPassword,
         dob: regDob ? regDob.format("YYYY-MM-DD") : null,
+        gender: regGender,
         ...(regRoles.includes("leader") && {
-          gender: regGender,
           grade: regGrade,
         }),
       };
@@ -182,30 +182,30 @@ export default function RegisterForm({
         />
       </div>
 
+      {/* Gender */}
+      <div className={inputWrapperClasses}>
+        <WomanOutlined className={inputIconClasses} />
+        <Select
+          placeholder="Gender"
+          value={regGender}
+          onChange={(v) => setRegGender(v)}
+          options={GENDER_OPTIONS}
+          className="w-full text-[0.95rem]"
+        />
+      </div>
+
       {/* Conditional Leader Fields */}
       {isLeaderSelected && (
-        <>
-          <div className={inputWrapperClasses}>
-            <WomanOutlined className={inputIconClasses} />
-            <Select
-              placeholder="Gender"
-              value={regGender}
-              onChange={(v) => setRegGender(v)}
-              options={GENDER_OPTIONS}
-              className="w-full text-[0.95rem]"
-            />
-          </div>
-          <div className={inputWrapperClasses}>
-            <ReadOutlined className={inputIconClasses} />
-            <Select
-              placeholder="Grade"
-              value={regGrade}
-              onChange={(v) => setRegGrade(v)}
-              options={GRADE_OPTIONS}
-              className="w-full text-[0.95rem]"
-            />
-          </div>
-        </>
+        <div className={inputWrapperClasses}>
+          <ReadOutlined className={inputIconClasses} />
+          <Select
+            placeholder="Grade"
+            value={regGrade}
+            onChange={(v) => setRegGrade(v)}
+            options={GRADE_OPTIONS}
+            className="w-full text-[0.95rem]"
+          />
+        </div>
       )}
 
       {/* Password */}

@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { Modal, Table, Button, DatePicker, Typography, message } from "antd";
+import { Modal, Table, Button, DatePicker, Typography, message, Space, Tooltip } from "antd";
+import { HistoryOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { fclService, attendanceService } from "@/services";
 import { getSundaysOfMonth } from "@/lib/formatters";
 import dayjs, { type Dayjs } from "dayjs";
 import type { AttendanceRecord } from "@/types";
+import HistoryModal from "./HistoryModal";
 
 const { Text } = Typography;
 
@@ -34,6 +36,12 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
   const [date, setDate] = useState(dayjs());
   const [data, setData] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyProps, setHistoryProps] = useState<{ open: boolean; memberId: number | null; date: string | null; memberName: string }>({
+    open: false,
+    memberId: null,
+    date: null,
+    memberName: "",
+  });
 
   const fetchSheet = useCallback(async (d: Dayjs) => {
     setLoading(true);
@@ -128,11 +136,28 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
         key,
         dataIndex: key,
         render: (_: unknown, record: AttendanceRecord) => (
-          <AttendanceButton 
-            status={record[key] as number | null} 
-            onClick={() => handleChange(record.memberId as number, key)} 
-            disabled={isFuture}
-          />
+          <Space direction="horizontal" size="small">
+            <AttendanceButton 
+              status={record[key] as number | null} 
+              onClick={() => handleChange(record.memberId as number, key)} 
+              disabled={isFuture}
+            />
+            {record[key] !== null && !isFuture && (
+              <Tooltip title="View History">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<HistoryOutlined />} 
+                  onClick={() => setHistoryProps({
+                    open: true,
+                    memberId: record.memberId as number,
+                    date: key,
+                    memberName: record.name as string,
+                  })}
+                />
+              </Tooltip>
+            )}
+          </Space>
         ),
         align: "center" as const,
       };
@@ -169,6 +194,10 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
         pagination={false}
         scroll={{ x: "max-content" }}
         loading={loading}
+      />
+      <HistoryModal
+        {...historyProps}
+        onClose={() => setHistoryProps((prev) => ({ ...prev, open: false }))}
       />
     </Modal>
   );

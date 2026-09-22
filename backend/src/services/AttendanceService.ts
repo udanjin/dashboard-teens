@@ -3,6 +3,7 @@ import sequelize from "../config/db";
 import User from "../models/User";
 import Member from "../models/Member";
 import Attendance from "../models/Attendance";
+import AttendanceHistory from "../models/AttendanceHistory";
 import { NotFoundError } from "../errors/AppError";
 import dayjs from "dayjs";
 
@@ -41,18 +42,72 @@ export class AttendanceService {
     const transaction = await sequelize.transaction();
 
     try {
-      const toDelete = attendances
-        .filter((att) => att.status === null)
-        .map((att) => att.memberId);
+      const inputMemberIds = attendances.map((a) => a.memberId);
+      
+      const existingAttendances = await Attendance.findAll({
+        where: { date, memberId: { [Op.in]: inputMemberIds } },
+        transaction,
+      });
 
-      const toUpsert = attendances
-        .filter((att) => att.status !== null)
-        .map((att) => ({
-          leaderId,
-          memberId: att.memberId,
-          date,
-          status: att.status,
-        }));
+      const existingMap = new Map<number, number>();
+      for (const record of existingAttendances) {
+        existingMap.set(record.memberId, record.status);
+      }
+
+      const historyLogs: any[] = [];
+      const toDelete: number[] = [];
+      const toUpsert: any[] = [];
+
+      for (const att of attendances) {
+        const memberId = att.memberId;
+        const newStatus = att.status;
+        const oldStatus = existingMap.has(memberId) ? existingMap.get(memberId)! : null;
+
+        if (newStatus === oldStatus) {
+          continue; // No change
+        }
+
+        if (newStatus === null) {
+          toDelete.push(memberId);
+          if (oldStatus !== null) {
+            historyLogs.push({
+              memberId,
+              date,
+              updatedBy: leaderId,
+              action: "Deleted",
+              oldStatus,
+              newStatus: null,
+            });
+          }
+        } else {
+          toUpsert.push({
+            leaderId,
+            memberId,
+            date,
+            status: newStatus,
+          });
+
+          if (oldStatus === null) {
+            historyLogs.push({
+              memberId,
+              date,
+              updatedBy: leaderId,
+              action: "Created",
+              oldStatus: null,
+              newStatus,
+            });
+          } else {
+            historyLogs.push({
+              memberId,
+              date,
+              updatedBy: leaderId,
+              action: "Updated",
+              oldStatus,
+              newStatus,
+            });
+          }
+        }
+      }
 
       if (toDelete.length > 0) {
         await Attendance.destroy({
@@ -66,6 +121,10 @@ export class AttendanceService {
           updateOnDuplicate: ["status"],
           transaction,
         });
+      }
+
+      if (historyLogs.length > 0) {
+        await AttendanceHistory.bulkCreate(historyLogs, { transaction });
       }
 
       await transaction.commit();
@@ -136,5 +195,13 @@ export class AttendanceService {
     });
 
     return { memberStats };
+  }
+
+  static async getAttendanceHistory(memberId: number, date: string) {
+    return await AttendanceHistory.findAll({
+      where: { memberId, date },
+      include: [{ model: User, as: "Updater", attributes: ["id", "username", "name"] }],
+      order: [["createdAt", "DESC"]],
+    });
   }
 }

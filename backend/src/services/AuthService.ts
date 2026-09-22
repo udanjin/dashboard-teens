@@ -109,9 +109,13 @@ export class AuthService {
     return await Role.findAll({ attributes: ["id", "name"] });
   }
 
-  static async approveUser(id: number, data: { roleIds: number[], fcId?: number, createFc?: boolean, fcGrade?: number }) {
+  static async approveUser(id: number, data: { roleIds: number[], fcId?: number, createFc?: boolean, fcGrade?: number, gender?: string }) {
     const user = await User.findByPk(id);
     if (!user) throw new NotFoundError("User not found");
+
+    if (data.gender) {
+      user.gender = data.gender as any;
+    }
 
     if (data.createFc && data.fcGrade !== undefined) {
       const FamilyCell = require("../models/FamilyCell").default;

@@ -20,4 +20,5 @@ export const approveUserSchema = z.object({
   fcId: z.number().optional(),
   createFc: z.boolean().optional(),
   fcGrade: z.number().optional(),
+  gender: z.string().optional(),
 });

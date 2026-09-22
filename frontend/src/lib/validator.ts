@@ -57,10 +57,10 @@ export const validateRegistration = (data: RegistrationValidationData): string |
     if (!data.dob) {
         return "Please select your date of birth.";
     }
+    if (!data.gender) {
+        return "Gender is required.";
+    }
     if (data.roles.includes("leader")) {
-        if (!data.gender) {
-            return "Gender is required for Leaders.";
-        }
         if (!data.grade) {
             return "Grade is required for Leaders.";
         }

@@ -54,5 +54,26 @@ export class AttendanceController {
       next(err);
     }
   }
+
+  @Get("history/:memberId/:date")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  private async getHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const leaderId = req.user?.userId;
+      if (!leaderId) throw new BadRequestError("Leader ID is missing from token");
+
+      const memberId = parseInt(req.params.memberId, 10);
+      const date = req.params.date;
+      
+      if (isNaN(memberId) || !date) {
+        throw new BadRequestError("Invalid memberId or date");
+      }
+
+      const history = await AttendanceService.getAttendanceHistory(memberId, date);
+      res.json(history);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 

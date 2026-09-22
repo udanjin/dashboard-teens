@@ -29,6 +29,7 @@ export interface ApproveUserPayload {
   fcId?: number;
   createFc?: boolean;
   fcGrade?: number;
+  gender?: string;
 }
 
 export interface UpdateUserPayload {

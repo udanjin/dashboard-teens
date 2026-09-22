@@ -28,7 +28,7 @@ export default function UserManagementPage() {
   const canAccessApproval = hasPermission(PERMISSIONS.APPROVAL_VIEW) || hasPermission(PERMISSIONS.APPROVAL_MANAGE);
   const canManageApproval = hasPermission(PERMISSIONS.APPROVAL_MANAGE);
 
-  const [approvalForm] = Form.useForm<{ roleIds: number[]; createFc?: boolean; fcId?: number; fcGrade?: number }>();
+  const [approvalForm] = Form.useForm<{ roleIds: number[]; createFc?: boolean; fcId?: number; fcGrade?: number; gender?: string }>();
   const [editForm] = Form.useForm<UpdateUserPayload>();
   
   const approvalModal = useModal(APPROVAL_MODAL_KEY);
@@ -40,6 +40,14 @@ export default function UserManagementPage() {
   const [familyCells, setFamilyCells] = useState<{ id: number; name: string; grade: number; gender: string | null }[]>([]);
   
   const editingGender = Form.useWatch("gender", editForm);
+  
+  const approvalRoleIds = Form.useWatch("roleIds", approvalForm) || [];
+  const approvalGender = Form.useWatch("gender", approvalForm);
+  
+  const isApprovingLeader = approvalRoleIds.some((id) => {
+    const role = availableRoles.find((r) => r.id === id);
+    return role && (role.name.toLowerCase().includes("leader") || role.name.toLowerCase() === "fcl");
+  });
 
   const fetchPendingUsers = useCallback(async () => {
     const res = await userService.getPendingUsers();
@@ -126,6 +134,7 @@ export default function UserManagementPage() {
         fcId: values.createFc ? undefined : values.fcId,
         createFc: values.createFc,
         fcGrade: values.createFc ? values.fcGrade : undefined,
+        gender: values.gender,
       });
       message.success(`User ${selectedPendingUser.username} has been approved.`);
       approvalModal.close();
@@ -379,45 +388,60 @@ export default function UserManagementPage() {
             />
           </Form.Item>
 
-          <Form.Item name="createFc" valuePropName="checked">
-            <Switch checkedChildren="Create New Family Cell" unCheckedChildren="Assign to Existing Family Cell" />
-          </Form.Item>
+          {!selectedPendingUser?.gender && (
+            <Form.Item
+              name="gender"
+              label="User Gender (Required)"
+              rules={[{ required: true, message: "Please select the user's gender" }]}
+            >
+              <Select options={GENDER_OPTIONS} placeholder="Select gender" />
+            </Form.Item>
+          )}
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.createFc !== currentValues.createFc}
-          >
-            {({ getFieldValue }) => {
-              const isCreateNew = getFieldValue("createFc");
-              return isCreateNew ? (
-                <Form.Item
-                  name="fcGrade"
-                  label="Grade for New Family Cell"
-                  rules={[{ required: true, message: "Please select a grade for the new FC" }]}
-                >
-                  <Select options={GRADE_OPTIONS} placeholder="Select grade" />
-                </Form.Item>
-              ) : (
-                <Form.Item
-                  name="fcId"
-                  label="Select Existing Family Cell"
-                  rules={[{ required: true, message: "Please select an existing FC" }]}
-                >
-                  <Select
-                    options={familyCells
-                      .filter((fc) => !fc.gender || !selectedPendingUser?.gender || fc.gender === selectedPendingUser?.gender)
-                      .map((fc) => ({
-                        value: fc.id,
-                        label: `${fc.name} (Grade ${fc.grade}) ${fc.gender ? `(${fc.gender})` : ""}`,
-                      }))}
-                    placeholder="Select Family Cell"
-                    showSearch
-                    optionFilterProp="label"
-                  />
-                </Form.Item>
-              );
-            }}
-          </Form.Item>
+          {isApprovingLeader && (
+            <>
+              <Form.Item name="createFc" valuePropName="checked">
+                <Switch checkedChildren="Create New Family Cell" unCheckedChildren="Assign to Existing Family Cell" />
+              </Form.Item>
+
+              <Form.Item
+                noStyle
+                shouldUpdate={(prevValues, currentValues) => prevValues.createFc !== currentValues.createFc}
+              >
+                {({ getFieldValue }) => {
+                  const isCreateNew = getFieldValue("createFc");
+                  const effectiveGender = selectedPendingUser?.gender || approvalGender;
+                  return isCreateNew ? (
+                    <Form.Item
+                      name="fcGrade"
+                      label="Grade for New Family Cell"
+                      rules={[{ required: true, message: "Please select a grade for the new FC" }]}
+                    >
+                      <Select options={GRADE_OPTIONS} placeholder="Select grade" />
+                    </Form.Item>
+                  ) : (
+                    <Form.Item
+                      name="fcId"
+                      label="Select Existing Family Cell"
+                      rules={[{ required: true, message: "Please select an existing FC" }]}
+                    >
+                      <Select
+                        options={familyCells
+                          .filter((fc) => !fc.gender || !effectiveGender || fc.gender === effectiveGender)
+                          .map((fc) => ({
+                            value: fc.id,
+                            label: `${fc.name} (Grade ${fc.grade}) ${fc.gender ? `(${fc.gender})` : ""}`,
+                          }))}
+                        placeholder="Select Family Cell"
+                        showSearch
+                        optionFilterProp="label"
+                      />
+                    </Form.Item>
+                  );
+                }}
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
 
