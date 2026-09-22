@@ -48,7 +48,7 @@ Attendance.init(
     indexes: [
       {
         unique: true,
-        fields: ["memberId", "leaderId", "date"],
+        fields: ["memberId", "date"],
       },
     ],
   }

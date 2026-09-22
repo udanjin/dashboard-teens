@@ -4,6 +4,8 @@ import User from "../models/User";
 import SportInventory from "../models/SportInventory";
 import { NotFoundError } from "../errors/AppError";
 import { CashAdjustmentService } from "./CashAdjustmentService";
+import { createSportReportSchema, updateSportReportSchema } from "../dtos/SportReport.dto";
+import { z } from "zod";
 
 interface SportReportFilters {
   startDate?: string;
@@ -93,11 +95,11 @@ export class SportReportService {
     return venues.map((v: any) => v.venue).filter(Boolean);
   }
 
-  static async createReport(data: any) {
+  static async createReport(data: z.infer<typeof createSportReportSchema> & { createdById: number }) {
     return await SportReport.create(data);
   }
 
-  static async updateReport(id: number, data: any) {
+  static async updateReport(id: number, data: z.infer<typeof updateSportReportSchema>) {
     const report = await SportReport.findByPk(id);
     if (!report) {
       throw new NotFoundError("Sport report not found");

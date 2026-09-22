@@ -41,6 +41,9 @@ function mapApiResponseToEvent(item: SportReportApiResponse, index: number): Spo
       keterangan: d.keterangan,
       cost: d.cost,
     })),
+    absenteesCount: item.absenteesCount || 0,
+    chipInAmount: item.chipInAmount || 0,
+    penaltyAmount: item.penaltyAmount || 0,
   };
 }
 

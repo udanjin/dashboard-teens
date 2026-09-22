@@ -1,13 +1,15 @@
 import * as bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { User, Role } from "../models";
+import { registerSchema, loginSchema } from "../dtos/Auth.dto";
+import { z } from "zod";
 import { getPermissionsForRoles } from "../types";
 import { BadRequestError, NotFoundError, ForbiddenError, UnauthorizedError } from "../errors/AppError";
 
 const TOKEN_EXPIRY = "8h";
 
 export class AuthService {
-  static async register(data: any) {
+  static async register(data: z.infer<typeof registerSchema>) {
     if (data.requestedRoles.includes("leader") && (!data.gender || !data.grade)) {
       throw new BadRequestError("Gender and grade are required when requesting the leader role");
     }
@@ -33,7 +35,7 @@ export class AuthService {
     });
   }
 
-  static async login(data: any) {
+  static async login(data: z.infer<typeof loginSchema>) {
     const user = await User.findOne({
       where: { username: data.username },
       include: [

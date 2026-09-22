@@ -11,7 +11,7 @@ import ProtectedLayout from "@/components/Layout/ProtectedLayout";
 const { Title, Text } = Typography;
 
 export default function ProfilePage() {
-  const { user, login } = useAuth();
+  const { user, login, updateUser } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -30,16 +30,12 @@ export default function ProfilePage() {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      await userService.updateProfile({
+      const response = await userService.updateProfile({
         name: values.name,
         dob: values.dob ? values.dob.format("YYYY-MM-DD") : undefined,
       });
       message.success("Profile updated successfully!");
-      // Option to force reload or re-fetch user info, if context allows
-      // For now, reload window is the simplest way to refresh JWT payload if stored in cookie, 
-      // but in our app we might just need to rely on the backend returning updated data on next fetch.
-      // Assuming a simple reload is enough or we rely on re-login
-      window.location.reload();
+      updateUser(response.data.user);
     } catch (error: any) {
       message.error(error.response?.data?.error || "Failed to update profile.");
     } finally {

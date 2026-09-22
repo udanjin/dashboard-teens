@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
 import { SportReportService } from "../services/SportReportService";
 import { getSportReportsSchema, createSportReportSchema, updateSportReportSchema } from "../dtos/SportReport.dto";
+import { idParamSchema } from "../dtos/Params.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 
@@ -63,7 +64,7 @@ export class SportReportController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
   private async updateReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       const data = updateSportReportSchema.parse(req.body);
       const updated = await SportReportService.updateReport(id, data);
       res.json(updated);
@@ -76,7 +77,7 @@ export class SportReportController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
   private async deleteReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       await SportReportService.deleteReport(id);
       res.json({ message: "Report deleted successfully" });
     } catch (err) {

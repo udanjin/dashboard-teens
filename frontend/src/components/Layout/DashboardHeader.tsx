@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Dropdown,
@@ -91,7 +93,7 @@ export default function DashboardHeader({
       ),
     },
     { type: "divider" },
-    { key: "profile", label: "Profile", icon: <UserOutlined /> },
+    { key: "profile", label: <Link href="/profile">Profile</Link>, icon: <UserOutlined /> },
     { key: "logout", label: "Logout", icon: <LogoutOutlined />, onClick: onLogout },
   ];
 
@@ -128,12 +130,13 @@ export default function DashboardHeader({
     <>
       <header className="h-16 bg-white shadow-sm shrink-0 flex items-center px-6">
         <div className="flex justify-between items-center w-full">
-          <Button
-            type="text"
-            icon={<MenuOutlined />}
-            onClick={onMenuClick}
-            className="md:hidden lg:hidden"
-          />
+          <div className="lg:hidden">
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={onMenuClick}
+            />
+          </div>
           <div className="flex items-center gap-6 ml-auto">
             {canManageDeletions && (
               <Dropdown

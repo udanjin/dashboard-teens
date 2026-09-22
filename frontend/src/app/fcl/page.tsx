@@ -119,9 +119,9 @@ export default function FclPage() {
         values.names.map((item) => ({
           name: item.name,
           dob: item.dob ? item.dob.format("YYYY-MM-DD") : null,
+          phoneNumber: item.phoneNumber,
           grade: user.grade!,
           gender: user.gender!,
-          phoneNumber: item.phoneNumber,
         }))
       );
       message.success("Members added successfully!");

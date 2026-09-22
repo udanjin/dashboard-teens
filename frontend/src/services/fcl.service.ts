@@ -1,7 +1,7 @@
 import axiosInstance from "@/lib/axiosInstance";
 import type {
   Member,
-  LeaderSummary,
+  FamilyCellSummary,
   WeeklyStatsResponse,
   Birthday,
   DeletionRequest,
@@ -26,7 +26,7 @@ export const fclService = {
   },
 
   getSummary(month: number, year: number) {
-    return axiosInstance.get<LeaderSummary[]>(
+    return axiosInstance.get<FamilyCellSummary[]>(
       `/fcl/fcl-summary?month=${month}&year=${year}`
     );
   },

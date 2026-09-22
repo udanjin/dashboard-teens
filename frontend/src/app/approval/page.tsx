@@ -37,7 +37,9 @@ export default function UserManagementPage() {
   const [selectedPendingUser, setSelectedPendingUser] = useState<PendingUser | null>(null);
   const [selectedApprovedUser, setSelectedApprovedUser] = useState<ApprovedUser | null>(null);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
-  const [familyCells, setFamilyCells] = useState<{ id: number; name: string; grade: number }[]>([]);
+  const [familyCells, setFamilyCells] = useState<{ id: number; name: string; grade: number; gender: string | null }[]>([]);
+  
+  const editingGender = Form.useWatch("gender", editForm);
 
   const fetchPendingUsers = useCallback(async () => {
     const res = await userService.getPendingUsers();
@@ -102,7 +104,12 @@ export default function UserManagementPage() {
         name: "fcId",
         label: "Family Cell",
         componentType: "select",
-        options: familyCells.map((fc) => ({ value: fc.id, label: `${fc.name} (Grade ${fc.grade})` })),
+        options: familyCells
+          .filter((fc) => {
+            const targetGender = editingGender || selectedApprovedUser?.gender;
+            return !fc.gender || !targetGender || fc.gender === targetGender;
+          })
+          .map((fc) => ({ value: fc.id, label: `${fc.name} (Grade ${fc.grade}) ${fc.gender ? `(${fc.gender})` : ""}` })),
         placeholder: "Assign to Family Cell (Optional)",
         props: { allowClear: true, showSearch: true, optionFilterProp: "label" },
       },
@@ -397,10 +404,12 @@ export default function UserManagementPage() {
                   rules={[{ required: true, message: "Please select an existing FC" }]}
                 >
                   <Select
-                    options={familyCells.map((fc) => ({
-                      value: fc.id,
-                      label: `${fc.name} (Grade ${fc.grade})`,
-                    }))}
+                    options={familyCells
+                      .filter((fc) => !fc.gender || !selectedPendingUser?.gender || fc.gender === selectedPendingUser?.gender)
+                      .map((fc) => ({
+                        value: fc.id,
+                        label: `${fc.name} (Grade ${fc.grade}) ${fc.gender ? `(${fc.gender})` : ""}`,
+                      }))}
                     placeholder="Select Family Cell"
                     showSearch
                     optionFilterProp="label"

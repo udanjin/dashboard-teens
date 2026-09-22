@@ -1,4 +1,4 @@
-import { DataTypes, Model } from "sequelize";
+import { DataTypes, Model, Op } from "sequelize";
 import sequelize from "../config/db";
 import Role from "./Role";
 
@@ -62,5 +62,20 @@ User.init(
     tableName: "users",
   }
 );
+User.beforeSave(async (user: User) => {
+  if (user.fcId && user.gender) {
+    const otherLeader = await User.findOne({
+      where: {
+        fcId: user.fcId,
+        status: "approved",
+        id: { [Op.ne]: user.id || 0 }, // Ignore self if updating
+      },
+    });
+
+    if (otherLeader && otherLeader.gender !== user.gender) {
+      throw new Error(`Cannot assign a ${user.gender} leader to an FC with a ${otherLeader.gender} leader.`);
+    }
+  }
+});
 
 export default User;

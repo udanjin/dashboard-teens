@@ -60,9 +60,18 @@ const fields: FieldConfig[][] = [
       rules: [{ required: true, message: "Required" }],
       props: { min: 0 },
     },
+  ],
+  [
     {
       name: "absenteesCount",
       label: "Absentees Count",
+      componentType: "inputNumber",
+      rules: [{ required: true, message: "Required" }],
+      props: { min: 0 },
+    },
+    {
+      name: "penaltyAmount",
+      label: "Penalty Amount per Person (Rp)",
       componentType: "inputNumber",
       rules: [{ required: true, message: "Required" }],
       props: { min: 0 },
@@ -90,34 +99,11 @@ export default function SportsEventForm({ form, onFinish, loading }: SportsEvent
       },
     ],
     fields[2],
+    fields[3],
   ];
 
-  const chipInAmount = Form.useWatch("chipInAmount", form);
-  const participant = Form.useWatch("participant", form);
-  const absenteesCount = Form.useWatch("absenteesCount", form);
+  // Auto-calculated fields are handled by the parent save logic now
 
-  useEffect(() => {
-    if (chipInAmount !== undefined && participant !== undefined && absenteesCount !== undefined) {
-      const pemasukanDetails = [];
-
-      if (participant > 0) {
-        pemasukanDetails.push({
-          keterangan: `Chip-in Hadir (${participant} org)`,
-          cost: participant * chipInAmount,
-        });
-      }
-
-      if (absenteesCount > 0) {
-        const penalty = Math.max(0, chipInAmount - 10000);
-        pemasukanDetails.push({
-          keterangan: `Penalty Tidak Hadir (${absenteesCount} org)`,
-          cost: absenteesCount * penalty,
-        });
-      }
-
-      form.setFieldsValue({ pemasukanDetails });
-    }
-  }, [chipInAmount, participant, absenteesCount, form]);
 
   return (
     <DynamicForm
@@ -130,7 +116,8 @@ export default function SportsEventForm({ form, onFinish, loading }: SportsEvent
         pemasukanDetails: [],
         chipInAmount: 25000,
         participant: 0,
-        absenteesCount: 0
+        absenteesCount: 0,
+        penaltyAmount: 15000,
       }}
     >
       <FinancialDetailList
@@ -141,10 +128,9 @@ export default function SportsEventForm({ form, onFinish, loading }: SportsEvent
       />
       <FinancialDetailList
         name="pemasukanDetails"
-        label="Detail Pemasukan (Auto-calculated)"
-        addButtonLabel="Add Income Detail"
-        placeholder="Keterangan pemasukan"
-        disabled={true}
+        label="Additional Incomes (Manual)"
+        addButtonLabel="Add Extra Income"
+        placeholder="Keterangan pendapatan tambahan"
       />
     </DynamicForm>
   );

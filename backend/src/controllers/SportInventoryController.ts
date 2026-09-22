@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
 import { SportInventoryService } from "../services/SportInventoryService";
 import { createSportInventorySchema, updateSportInventorySchema } from "../dtos/SportInventory.dto";
+import { idParamSchema } from "../dtos/Params.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 
@@ -49,7 +50,7 @@ export class SportInventoryController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
   private async updateInventory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       const data = updateSportInventorySchema.parse(req.body);
       const updated = await SportInventoryService.updateInventory(id, data);
       res.json(updated);
@@ -62,7 +63,7 @@ export class SportInventoryController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
   private async deleteInventory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       await SportInventoryService.deleteInventory(id);
       res.json({ message: "Inventory deleted successfully" });
     } catch (err) {

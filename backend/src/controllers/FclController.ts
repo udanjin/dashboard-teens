@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
 import { FclService } from "../services/FclService";
 import { addMembersSchema, editMemberSchema, fclSummarySchema, weeklyStatsSchema, requestDeleteSchema } from "../dtos/Fcl.dto";
+import { idParamSchema } from "../dtos/Params.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 import { BadRequestError } from "../errors/AppError";
@@ -32,7 +33,7 @@ export class FclController {
       const leaderId = req.user?.userId;
       if (!leaderId) throw new BadRequestError("Unauthorized");
 
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       const data = editMemberSchema.parse(req.body);
       
       const member = await FclService.editMember(leaderId, id, data);
@@ -84,7 +85,7 @@ export class FclController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_MEMBERS)])
   private async requestDeleteMember(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       const { reason } = requestDeleteSchema.parse(req.body);
       await FclService.requestDeleteMember(id, reason);
       res.json({ message: "Deletion request submitted for approval." });
@@ -108,7 +109,7 @@ export class FclController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_DELETIONS)])
   private async approveDeleteMember(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       await FclService.approveDeleteMember(id);
       res.json({ message: "Member deletion approved and completed." });
     } catch (err) {
@@ -120,7 +121,7 @@ export class FclController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.FCL_MANAGE_DELETIONS)])
   private async rejectDeletion(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       await FclService.rejectDeletion(id);
       res.json({ message: "Deletion request has been rejected." });
     } catch (err) {

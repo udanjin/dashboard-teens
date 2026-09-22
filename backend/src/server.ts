@@ -2,6 +2,8 @@ import { Server as OvernightServer } from "@overnightjs/core";
 import express, { NextFunction, Request, Response } from "express";
 import cors, { CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 import "./models";
 import { errorHandler } from "./middleware/errorHandler";
@@ -46,9 +48,19 @@ export class Server extends OvernightServer {
       allowedHeaders: ["Content-Type", "Authorization"],
     };
 
+    this.app.use(helmet());
     this.app.use(cors(corsOptions));
     this.app.use(cookieParser());
     this.app.use(express.json());
+
+    // Basic rate limiter for authentication endpoints
+    const authLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 50, // limit each IP to 50 requests per windowMs
+      message: { error: "Too many requests, please try again later." }
+    });
+
+    this.app.use("/api/auth", authLimiter);
 
     this.app.get("/api/health", (_req: Request, res: Response) => {
       res.json({ status: "OK", timestamp: new Date().toISOString() });
@@ -87,7 +99,7 @@ export class Server extends OvernightServer {
     await sequelize.authenticate();
     console.log("Database connected");
 
-    await sequelize.sync();
+    await sequelize.sync({ alter: false, force: false });
     console.log("Database synced");
   }
 }

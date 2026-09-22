@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 import { ZodError } from "zod";
+import { ValidationError, UniqueConstraintError } from "sequelize";
 
 export const errorHandler = (
   err: Error,
@@ -18,6 +19,17 @@ export const errorHandler = (
       error: "Validation Error",
       details: err.issues.map((e) => ({
         path: e.path.join("."),
+        message: e.message,
+      })),
+    });
+    return;
+  }
+
+  if (err instanceof ValidationError || err instanceof UniqueConstraintError) {
+    res.status(400).json({
+      error: "Database Validation Error",
+      details: err.errors.map((e) => ({
+        path: e.path,
         message: e.message,
       })),
     });

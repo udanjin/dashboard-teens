@@ -15,6 +15,9 @@ export interface SportEvent {
   category: SportCategory;
   venue: string;
   participant: number;
+  absenteesCount: number;
+  chipInAmount: number;
+  penaltyAmount: number;
   expenseDetails: FinancialDetail[];
   pemasukanDetails: FinancialDetail[];
   totalpengeluaran: number;
@@ -30,6 +33,9 @@ export interface SportReportApiResponse {
   sportsCategory: SportCategory;
   venue: string;
   participant: number;
+  absenteesCount: number;
+  chipInAmount: number;
+  penaltyAmount: number;
   detailPengeluaran: { id?: string; keterangan: string; cost: number }[];
   detailPemasukan: { id?: string; keterangan: string; cost: number }[];
   totalPemasukan: number;
@@ -42,6 +48,9 @@ export interface SportReportPayload {
   sportsCategory: SportCategory;
   venue: string;
   participant: number;
+  absenteesCount: number;
+  chipInAmount: number;
+  penaltyAmount: number;
   detailPengeluaran: { keterangan: string; cost: number }[];
   detailPemasukan: { keterangan: string; cost: number }[];
   totalPemasukan: number;

@@ -1,0 +1,601 @@
+{
+  "timestamp": "2026-09-22T16:20:33.386Z",
+  "users": [
+    {
+      "id": 25,
+      "username": "ujin",
+      "password": "$2b$10$MG33OR2HWCJDbMYFZ232J.s7MBYqNk5XPZfRO4Z49Tdh31QsVx4Vi",
+      "createdAt": "2025-09-24T12:44:46.002Z",
+      "updatedAt": "2025-09-24T12:44:46.002Z",
+      "status": "approved",
+      "grade": null,
+      "gender": null,
+      "dob": "2025-09-03",
+      "requestedRoles": null,
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 44,
+      "username": "Yoel",
+      "password": "$2b$10$DmPZRTFarXuRlX6Dqe4DXOYK.Py.53EiOWRKMWOBCtOyXA/02cFuO",
+      "createdAt": "2026-09-13T05:51:00.273Z",
+      "updatedAt": "2026-09-13T05:53:11.133Z",
+      "status": "approved",
+      "grade": 9,
+      "gender": "male",
+      "dob": "2006-03-18",
+      "requestedRoles": null,
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 45,
+      "username": "aloi",
+      "password": "$2b$10$F07DoIbe/JaR6MJhwMCbx.nh8JxFXPTu4ivR7EYFKDt0vDNBPA1ve",
+      "createdAt": "2026-09-13T05:52:44.144Z",
+      "updatedAt": "2026-09-13T05:53:19.952Z",
+      "status": "approved",
+      "grade": 7,
+      "gender": "male",
+      "dob": "2008-06-24",
+      "requestedRoles": null,
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 46,
+      "username": "beverly",
+      "password": "$2b$10$Lj7BdNdxEPFfHIpHRxT4m.Q02uVaPDqPiVYubMJNBwLRQxB.mQdMO",
+      "createdAt": "2026-09-13T06:02:18.774Z",
+      "updatedAt": "2026-09-13T06:02:44.385Z",
+      "status": "approved",
+      "grade": 10,
+      "gender": "female",
+      "dob": "2006-01-05",
+      "requestedRoles": null,
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 49,
+      "username": "ellenachia",
+      "password": "$2b$10$2ah9xn/tzppdDAD8qddbt.BkhC95ZiDYr5CQKlU6RHRtZgbE6JdLC",
+      "createdAt": "2026-09-15T12:06:58.251Z",
+      "updatedAt": "2026-09-15T12:11:25.055Z",
+      "status": "approved",
+      "grade": 8,
+      "gender": "female",
+      "dob": "2007-04-05",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 48,
+      "username": "kath",
+      "password": "$2b$10$lWlmYbJgak501yXcFyyb8elULvQCdG1Zb6fSVRtjuyfoMhiXlycca",
+      "createdAt": "2026-09-15T12:04:43.384Z",
+      "updatedAt": "2026-09-15T12:11:31.594Z",
+      "status": "approved",
+      "grade": 10,
+      "gender": "female",
+      "dob": "2003-07-30",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 47,
+      "username": "juanw",
+      "password": "$2b$10$g0RMVpHRuPlTYCJO2HLxQ.K.ysfpG3ATBh2gZOTey3JRAEofZD92e",
+      "createdAt": "2026-09-15T12:00:00.006Z",
+      "updatedAt": "2026-09-15T12:11:36.027Z",
+      "status": "approved",
+      "grade": 8,
+      "gender": "male",
+      "dob": "2026-09-15",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 51,
+      "username": "natnutt",
+      "password": "$2b$10$n60M75TITjn7p1eOS65aE.tKFJEcv7WqjFu1SiP4MO.WhZ6GQ5Hjq",
+      "createdAt": "2026-09-16T03:26:24.352Z",
+      "updatedAt": "2026-09-16T05:06:56.445Z",
+      "status": "approved",
+      "grade": 12,
+      "gender": "male",
+      "dob": "2004-03-01",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 52,
+      "username": "eugenesalim",
+      "password": "$2b$10$KFm1g6qi7Pz/FhLxY.WnU.GZgDqgBHHMkHRuxnOLo4Wb1GbkkxMy.",
+      "createdAt": "2026-09-16T05:49:51.115Z",
+      "updatedAt": "2026-09-16T05:50:18.413Z",
+      "status": "approved",
+      "grade": 10,
+      "gender": "male",
+      "dob": "2002-12-15",
+      "requestedRoles": [
+        "leader",
+        "sports"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 54,
+      "username": "JuanC",
+      "password": "$2b$10$vVk1t8OLCHR3fbSurpsefO0K9PMcHPfz01AJCOnpAm1WipqoOADGu",
+      "createdAt": "2026-09-16T06:31:01.104Z",
+      "updatedAt": "2026-09-16T06:32:30.771Z",
+      "status": "approved",
+      "grade": 11,
+      "gender": "male",
+      "dob": "2005-10-12",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 55,
+      "username": "vionitavalencia",
+      "password": "$2b$10$Tarmjv2DV2/juFkK/Rodk.XTeBRqKCkiQ3k.yRRq.xOJOIP3jdcFG",
+      "createdAt": "2026-09-17T09:47:47.062Z",
+      "updatedAt": "2026-09-17T09:49:17.321Z",
+      "status": "approved",
+      "grade": 12,
+      "gender": "female",
+      "dob": "2005-09-23",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 56,
+      "username": "Patrickson",
+      "password": "$2b$10$4Mk0P2s81PqxeYhSKE0M1ur35nMKs.A4ZAjdgdDILWN0WwT4ZGzPO",
+      "createdAt": "2026-09-22T15:00:13.457Z",
+      "updatedAt": "2026-09-22T15:00:13.457Z",
+      "status": "pending",
+      "grade": null,
+      "gender": null,
+      "dob": "2001-08-27",
+      "requestedRoles": [
+        "fcl"
+      ],
+      "name": null,
+      "fcId": null
+    },
+    {
+      "id": 57,
+      "username": "Patrick",
+      "password": "$2b$10$vHxYe.fmpDfaCp8kV45iMO/UYLBWWg3NuVQumutdHe/ypcpfs7IN.",
+      "createdAt": "2026-09-22T15:27:22.653Z",
+      "updatedAt": "2026-09-22T15:27:22.653Z",
+      "status": "pending",
+      "grade": 12,
+      "gender": "female",
+      "dob": "2001-08-27",
+      "requestedRoles": [
+        "leader"
+      ],
+      "name": null,
+      "fcId": null
+    }
+  ],
+  "members": [
+    {
+      "id": 57,
+      "name": "Lionel",
+      "createdAt": "2026-09-13T06:04:07.854Z",
+      "updatedAt": "2026-09-13T06:04:50.901Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-30",
+      "phoneNumber": "+6281381339993"
+    },
+    {
+      "id": 58,
+      "name": "Daniel",
+      "createdAt": "2026-09-13T06:04:21.375Z",
+      "updatedAt": "2026-09-13T06:05:08.892Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-03",
+      "phoneNumber": "+6281280894224"
+    },
+    {
+      "id": 59,
+      "name": "Victorius",
+      "createdAt": "2026-09-13T06:05:32.796Z",
+      "updatedAt": "2026-09-13T06:05:32.796Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-23",
+      "phoneNumber": "+6287779914689"
+    },
+    {
+      "id": 60,
+      "name": "Cio",
+      "createdAt": "2026-09-13T06:05:55.957Z",
+      "updatedAt": "2026-09-13T06:05:55.957Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-30",
+      "phoneNumber": "+6287876532879"
+    },
+    {
+      "id": 61,
+      "name": "Grady",
+      "createdAt": "2026-09-13T06:06:25.385Z",
+      "updatedAt": "2026-09-13T06:06:25.385Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-30",
+      "phoneNumber": "+6285718678586"
+    },
+    {
+      "id": 62,
+      "name": "Jevan",
+      "createdAt": "2026-09-13T06:06:43.210Z",
+      "updatedAt": "2026-09-13T06:06:43.210Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-29",
+      "phoneNumber": "+6285692739573"
+    },
+    {
+      "id": 63,
+      "name": "Jovan",
+      "createdAt": "2026-09-13T06:07:29.314Z",
+      "updatedAt": "2026-09-13T06:07:29.314Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-23",
+      "phoneNumber": "+6282123603378"
+    },
+    {
+      "id": 64,
+      "name": "Marcell",
+      "createdAt": "2026-09-13T06:07:47.833Z",
+      "updatedAt": "2026-09-13T06:07:47.833Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-29",
+      "phoneNumber": "+6281286230549"
+    },
+    {
+      "id": 65,
+      "name": "Joshua Matthew",
+      "createdAt": "2026-09-13T06:10:48.529Z",
+      "updatedAt": "2026-09-13T06:10:48.529Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-29",
+      "phoneNumber": "+628129939876"
+    },
+    {
+      "id": 66,
+      "name": "Matthew Penabur",
+      "createdAt": "2026-09-13T06:10:48.596Z",
+      "updatedAt": "2026-09-13T06:10:48.596Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-22",
+      "phoneNumber": "+6283834195329"
+    },
+    {
+      "id": 67,
+      "name": "Paolo",
+      "createdAt": "2026-09-13T06:10:48.630Z",
+      "updatedAt": "2026-09-13T06:10:48.630Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-23",
+      "phoneNumber": "+6285256170517"
+    },
+    {
+      "id": 68,
+      "name": "Natan",
+      "createdAt": "2026-09-13T06:10:48.662Z",
+      "updatedAt": "2026-09-13T06:10:48.662Z",
+      "grade": 9,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-24",
+      "phoneNumber": "+6281902020606"
+    },
+    {
+      "id": 74,
+      "name": "Yerish",
+      "createdAt": "2026-09-16T05:55:28.181Z",
+      "updatedAt": "2026-09-16T05:55:28.181Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-05",
+      "phoneNumber": "+6283872385767"
+    },
+    {
+      "id": 76,
+      "name": "Lysander",
+      "createdAt": "2026-09-16T05:55:28.237Z",
+      "updatedAt": "2026-09-16T05:55:28.237Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-07",
+      "phoneNumber": "+628111103009"
+    },
+    {
+      "id": 78,
+      "name": "Marlon",
+      "createdAt": "2026-09-16T05:58:05.947Z",
+      "updatedAt": "2026-09-16T05:58:05.947Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-10",
+      "phoneNumber": "+6287787845383"
+    },
+    {
+      "id": 69,
+      "name": "Melvin",
+      "createdAt": "2026-09-16T05:55:27.970Z",
+      "updatedAt": "2026-09-16T07:27:05.556Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-01-10",
+      "phoneNumber": "+6281218507175"
+    },
+    {
+      "id": 70,
+      "name": "Justin",
+      "createdAt": "2026-09-16T05:55:28.044Z",
+      "updatedAt": "2026-09-16T07:27:38.028Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-02-24",
+      "phoneNumber": "+6288809298483"
+    },
+    {
+      "id": 77,
+      "name": "Joseph",
+      "createdAt": "2026-09-16T05:56:35.874Z",
+      "updatedAt": "2026-09-16T07:28:10.143Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-01-17",
+      "phoneNumber": "+6285774050157"
+    },
+    {
+      "id": 71,
+      "name": "Clinton",
+      "createdAt": "2026-09-16T05:55:28.079Z",
+      "updatedAt": "2026-09-16T07:28:25.104Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-08-25",
+      "phoneNumber": "+6287887976661"
+    },
+    {
+      "id": 75,
+      "name": "Randy",
+      "createdAt": "2026-09-16T05:55:28.215Z",
+      "updatedAt": "2026-09-16T12:25:18.068Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2010-06-27",
+      "phoneNumber": "+6287887663196"
+    },
+    {
+      "id": 73,
+      "name": "Henokh",
+      "createdAt": "2026-09-16T05:55:28.145Z",
+      "updatedAt": "2026-09-16T12:26:18.795Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-10-28",
+      "phoneNumber": "+628212393759"
+    },
+    {
+      "id": 72,
+      "name": "Samuel",
+      "createdAt": "2026-09-16T05:55:28.113Z",
+      "updatedAt": "2026-09-16T12:26:53.421Z",
+      "grade": 10,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2011-02-16",
+      "phoneNumber": "+6281288569850"
+    },
+    {
+      "id": 79,
+      "name": "malih",
+      "createdAt": "2026-09-18T08:53:49.895Z",
+      "updatedAt": "2026-09-18T08:53:49.895Z",
+      "grade": 12,
+      "status": "active",
+      "deletionReason": null,
+      "dob": "2026-09-01",
+      "phoneNumber": "+6281288385328"
+    }
+  ],
+  "leaderMembers": [
+    {
+      "createdAt": "2026-09-13T06:04:07.886Z",
+      "updatedAt": "2026-09-13T06:04:07.886Z",
+      "leaderId": 44,
+      "memberId": 57
+    },
+    {
+      "createdAt": "2026-09-13T06:04:21.388Z",
+      "updatedAt": "2026-09-13T06:04:21.388Z",
+      "leaderId": 44,
+      "memberId": 58
+    },
+    {
+      "createdAt": "2026-09-13T06:05:32.834Z",
+      "updatedAt": "2026-09-13T06:05:32.834Z",
+      "leaderId": 44,
+      "memberId": 59
+    },
+    {
+      "createdAt": "2026-09-13T06:05:55.969Z",
+      "updatedAt": "2026-09-13T06:05:55.969Z",
+      "leaderId": 44,
+      "memberId": 60
+    },
+    {
+      "createdAt": "2026-09-13T06:06:25.395Z",
+      "updatedAt": "2026-09-13T06:06:25.395Z",
+      "leaderId": 44,
+      "memberId": 61
+    },
+    {
+      "createdAt": "2026-09-13T06:06:43.221Z",
+      "updatedAt": "2026-09-13T06:06:43.221Z",
+      "leaderId": 44,
+      "memberId": 62
+    },
+    {
+      "createdAt": "2026-09-13T06:07:29.328Z",
+      "updatedAt": "2026-09-13T06:07:29.328Z",
+      "leaderId": 44,
+      "memberId": 63
+    },
+    {
+      "createdAt": "2026-09-13T06:07:47.844Z",
+      "updatedAt": "2026-09-13T06:07:47.844Z",
+      "leaderId": 44,
+      "memberId": 64
+    },
+    {
+      "createdAt": "2026-09-13T06:10:48.541Z",
+      "updatedAt": "2026-09-13T06:10:48.541Z",
+      "leaderId": 44,
+      "memberId": 65
+    },
+    {
+      "createdAt": "2026-09-13T06:10:48.607Z",
+      "updatedAt": "2026-09-13T06:10:48.607Z",
+      "leaderId": 44,
+      "memberId": 66
+    },
+    {
+      "createdAt": "2026-09-13T06:10:48.641Z",
+      "updatedAt": "2026-09-13T06:10:48.641Z",
+      "leaderId": 44,
+      "memberId": 67
+    },
+    {
+      "createdAt": "2026-09-13T06:10:48.673Z",
+      "updatedAt": "2026-09-13T06:10:48.673Z",
+      "leaderId": 44,
+      "memberId": 68
+    },
+    {
+      "createdAt": "2026-09-16T05:55:27.985Z",
+      "updatedAt": "2026-09-16T05:55:27.985Z",
+      "leaderId": 52,
+      "memberId": 69
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.055Z",
+      "updatedAt": "2026-09-16T05:55:28.055Z",
+      "leaderId": 52,
+      "memberId": 70
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.089Z",
+      "updatedAt": "2026-09-16T05:55:28.089Z",
+      "leaderId": 52,
+      "memberId": 71
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.123Z",
+      "updatedAt": "2026-09-16T05:55:28.123Z",
+      "leaderId": 52,
+      "memberId": 72
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.156Z",
+      "updatedAt": "2026-09-16T05:55:28.156Z",
+      "leaderId": 52,
+      "memberId": 73
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.191Z",
+      "updatedAt": "2026-09-16T05:55:28.191Z",
+      "leaderId": 52,
+      "memberId": 74
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.226Z",
+      "updatedAt": "2026-09-16T05:55:28.226Z",
+      "leaderId": 52,
+      "memberId": 75
+    },
+    {
+      "createdAt": "2026-09-16T05:55:28.247Z",
+      "updatedAt": "2026-09-16T05:55:28.247Z",
+      "leaderId": 52,
+      "memberId": 76
+    },
+    {
+      "createdAt": "2026-09-16T05:56:35.895Z",
+      "updatedAt": "2026-09-16T05:56:35.895Z",
+      "leaderId": 52,
+      "memberId": 77
+    },
+    {
+      "createdAt": "2026-09-16T05:58:05.958Z",
+      "updatedAt": "2026-09-16T05:58:05.958Z",
+      "leaderId": 52,
+      "memberId": 78
+    },
+    {
+      "createdAt": "2026-09-18T08:53:49.931Z",
+      "updatedAt": "2026-09-18T08:53:49.931Z",
+      "leaderId": 51,
+      "memberId": 79
+    }
+  ]
+}

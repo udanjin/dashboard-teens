@@ -3,8 +3,6 @@ import { z } from "zod";
 export const addMembersSchema = z.object({
   membersData: z.array(z.object({
     name: z.string(),
-    grade: z.union([z.string(), z.number()]),
-    gender: z.string(),
     dob: z.string(),
     phoneNumber: z.string().optional().nullable(),
   })),

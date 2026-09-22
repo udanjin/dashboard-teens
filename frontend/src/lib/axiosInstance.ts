@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearStoredUser } from "./authUtils";
+import { message } from "antd";
 
 const axiosInstance = axios.create({
   // Use the Next.js rewrite proxy (/api/* → Cloud Run) instead of calling
@@ -20,9 +21,16 @@ function isPublicRoute(): boolean {
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined" && !isPublicRoute()) {
-      clearStoredUser();
-      window.location.href = "/login";
+    if (typeof window !== "undefined") {
+      if (error.response?.status === 401 && !isPublicRoute()) {
+        clearStoredUser();
+        window.location.href = "/login";
+      } else if (error.response?.data?.error) {
+        // Automatically show error toast for standard API errors
+        message.error(error.response.data.error);
+      } else if (error.message && error.message !== "Network Error" && error.response?.status !== 401) {
+        message.error("An unexpected error occurred. Please try again.");
+      }
     }
     return Promise.reject(error);
   },

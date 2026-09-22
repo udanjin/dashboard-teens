@@ -7,6 +7,7 @@ export const registerSchema = z.object({
   requestedRoles: z.array(z.string()).min(1),
   gender: z.string().optional(),
   grade: z.number().optional(),
+  name: z.string().optional(),
 });
 
 export const loginSchema = z.object({

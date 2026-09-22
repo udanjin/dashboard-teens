@@ -17,7 +17,7 @@ import type { ColumnsType } from "antd/es/table";
 import { fclService } from "@/services";
 import dayjs from "dayjs";
 import Chart from "chart.js/auto";
-import type { LeaderSummary, MemberStat } from "@/types";
+import type { FamilyCellSummary, MemberStat } from "@/types";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -39,6 +39,7 @@ function FclAttendanceChart({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -49,14 +50,21 @@ function FclAttendanceChart({
           grade: selectedGrade,
           leaderName: selectedLeaderName,
         });
-        setChartData(res.data);
-      } catch {
-        message.error("Failed to fetch chart data.");
+        if (!controller.signal.aborted) {
+          setChartData(res.data);
+        }
+      } catch (err: any) {
+        if (err.name !== "CanceledError") {
+          message.error("Failed to fetch chart data.");
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     fetchData();
+    return () => controller.abort();
   }, [filterDate, selectedGender, selectedGrade, selectedLeaderName]);
 
   useEffect(() => {
@@ -106,11 +114,11 @@ function FclAttendanceChart({
 }
 
 export default function FclAdminHome() {
-  const [summaryData, setSummaryData] = useState<LeaderSummary[]>([]);
-  const [filteredData, setFilteredData] = useState<LeaderSummary[]>([]);
+  const [summaryData, setSummaryData] = useState<FamilyCellSummary[]>([]);
+  const [filteredData, setFilteredData] = useState<FamilyCellSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedLeader, setSelectedLeader] = useState<LeaderSummary | null>(null);
+  const [selectedFamilyCell, setSelectedFamilyCell] = useState<FamilyCellSummary | null>(null);
 
   const [filterDate, setFilterDate] = useState(dayjs());
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
@@ -121,18 +129,26 @@ export default function FclAdminHome() {
   const [leaderOptions, setLeaderOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchSummary = async () => {
       setLoading(true);
       try {
         const res = await fclService.getSummary(filterDate.month() + 1, filterDate.year());
-        setSummaryData(res.data);
-      } catch {
-        message.error("Failed to fetch FCL summary data.");
+        if (!controller.signal.aborted) {
+          setSummaryData(res.data);
+        }
+      } catch (err: any) {
+        if (err.name !== "CanceledError") {
+          message.error("Failed to fetch FCL summary data.");
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
     fetchSummary();
+    return () => controller.abort();
   }, [filterDate]);
 
   useEffect(() => {
@@ -152,25 +168,26 @@ export default function FclAdminHome() {
       temp = temp.filter((l) => l.grade === selectedGrade);
     }
     setLeaderOptions(
-      [...new Set(temp.map((l) => l.leaderName))].map((n) => ({ value: n, label: n }))
+      [...new Set(temp.flatMap((fc) => fc.leaders.map(l => l.name)))].map((n) => ({ value: n, label: n }))
     );
 
     if (selectedLeaderName) {
-      temp = temp.filter((l) => l.leaderName === selectedLeaderName);
+      temp = temp.filter((fc) => fc.leaders.some(l => l.name === selectedLeaderName));
     }
     setFilteredData(temp);
   }, [selectedGender, selectedGrade, selectedLeaderName, summaryData]);
 
-  const leaderColumns: ColumnsType<LeaderSummary> = [
-    { title: "Leader Name", dataIndex: "leaderName", key: "leaderName" },
+  const familyCellColumns: ColumnsType<FamilyCellSummary> = [
+    { title: "Family Cell", dataIndex: "fcName", key: "fcName" },
     { title: "Grade", dataIndex: "grade", key: "grade", render: (g: number) => g ?? "N/A" },
     { title: "Gender", dataIndex: "gender", key: "gender", render: (g: string) => g ?? "N/A" },
+    { title: "Leaders", key: "leaders", render: (_, r) => r.leaders.map(l => l.name).join(", ") },
     { title: "Total Members", key: "totalMembers", render: (_, r) => r.members.length },
     {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Button onClick={() => { setSelectedLeader(record); setIsModalOpen(true); }}>
+        <Button onClick={() => { setSelectedFamilyCell(record); setIsModalOpen(true); }}>
           Details
         </Button>
       ),
@@ -239,29 +256,30 @@ export default function FclAdminHome() {
         </div>
         <div className="overflow-x-auto">
           <Table
-            columns={leaderColumns}
+            columns={familyCellColumns}
             dataSource={filteredData}
             loading={loading}
-            rowKey="leaderId"
+            rowKey="fcId"
             bordered
           />
         </div>
         <Modal
-          title={`Kak ${selectedLeader?.leaderName} Member's Detail`}
+          title={`Kak ${selectedFamilyCell?.leaders.map(l => l.name).join(" & ")} Member's Detail`}
           open={isModalOpen}
           onCancel={() => setIsModalOpen(false)}
           footer={null}
           width={800}
         >
-          {selectedLeader && (
+          {selectedFamilyCell && (
             <Space direction="vertical">
-              <Typography.Text><strong>Gender: </strong>{selectedLeader.gender}</Typography.Text>
-              <Typography.Text><strong>Grade: </strong>{selectedLeader.grade}</Typography.Text>
+              <Typography.Text><strong>Family Cell: </strong>{selectedFamilyCell.fcName}</Typography.Text>
+              <Typography.Text><strong>Gender: </strong>{selectedFamilyCell.gender}</Typography.Text>
+              <Typography.Text><strong>Grade: </strong>{selectedFamilyCell.grade}</Typography.Text>
             </Space>
           )}
           <Table
             columns={memberDetailColumns}
-            dataSource={selectedLeader?.members}
+            dataSource={selectedFamilyCell?.members}
             rowKey="id"
             bordered
             pagination={false}

@@ -115,24 +115,73 @@ export default function SportsPage() {
   };
 
   const openEdit = (record: SportEvent) => {
-    form.setFieldsValue({ ...record, date: dayjs(record.date) });
+    form.resetFields();
+    
+    // Filter out standard auto-calculated strings so they don't appear in the "Additional Incomes" editable list
+    const customPemasukan = (record.pemasukanDetails || []).filter((d: any) => {
+      const ket = d.keterangan || "";
+      // Strict regex guarantees we ONLY strip exact auto-generated strings!
+      const isAutoChipIn = /^Chip-in Hadir \(\d+ org\)$/.test(ket);
+      const isAutoPenalty = /^Penalty Tidak Hadir \(\d+ org\)$/.test(ket);
+      return !isAutoChipIn && !isAutoPenalty;
+    });
+
+    form.setFieldsValue({ 
+      ...record, 
+      pemasukanDetails: customPemasukan,
+      date: dayjs(record.date) 
+    });
     formModal.open();
   };
 
   const handleFinish = async (values: Record<string, unknown>) => {
     formModal.setLoading(true);
     const expenses = (values.expenseDetails as FinancialDetail[]) || [];
-    const income = (values.pemasukanDetails as FinancialDetail[]) || [];
+    const additionalIncomes = (values.pemasukanDetails as FinancialDetail[]) || [];
+    
+    const participantCount = values.participant as number || 0;
+    const absentees = values.absenteesCount as number || 0;
+    const chipIn = values.chipInAmount as number || 0;
+    const penaltyAmount = values.penaltyAmount as number || 0;
+
+    const chipInTotal = participantCount * chipIn;
+    const penaltyTotal = absentees * penaltyAmount; // Use the explicit DB value!
+    const totalAdditional = sumCosts(additionalIncomes);
+    
+    const finalTotalPemasukan = chipInTotal + penaltyTotal + totalAdditional;
+
+    // Regenerate the final array to send to the backend
+    const fullPemasukan = [...additionalIncomes];
+    
+    if (participantCount > 0) {
+      fullPemasukan.unshift({
+        id: "auto-chip-in",
+        keterangan: `Chip-in Hadir (${participantCount} org)`,
+        cost: chipInTotal,
+      });
+    }
+
+    if (absentees > 0) {
+      fullPemasukan.push({
+        id: "auto-penalty",
+        keterangan: `Penalty Tidak Hadir (${absentees} org)`,
+        cost: penaltyTotal,
+      });
+    }
+
     try {
       const payload = {
         code: values.code as SportEvent["code"],
         date: dayjs(values.date as string).toISOString(),
         sportsCategory: values.category as SportEvent["category"],
         venue: values.venue as string,
-        participant: values.participant as number,
+        participant: participantCount,
+        absenteesCount: absentees,
+        chipInAmount: chipIn,
+        penaltyAmount: penaltyAmount,
         detailPengeluaran: expenses,
-        detailPemasukan: income,
-        totalPemasukan: sumCosts(income),
+        detailPemasukan: fullPemasukan,
+        totalPemasukan: finalTotalPemasukan,
         totalPengeluaran: sumCosts(expenses),
       };
       const id = values.id as string | undefined;

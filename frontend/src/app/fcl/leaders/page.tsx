@@ -41,11 +41,11 @@ import { fclService } from "@/services";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/types";
-import type { LeaderSummary, MemberStat } from "@/types";
+import { MemberStat, FamilyCellSummary } from "@/types/fcl.types";
 
 const { Title, Text } = Typography;
 
-interface ProcessedLeader extends LeaderSummary {
+interface ProcessedFamilyCell extends FamilyCellSummary {
   totalMembers: number;
   presentCount: number;
   absentCount: number;
@@ -60,7 +60,7 @@ export default function FclLeadersSummaryPage() {
     hasPermission(PERMISSIONS.FCL_VIEW);
 
   const [filterDate, setFilterDate] = useState<Dayjs>(dayjs());
-  const [summaryData, setSummaryData] = useState<LeaderSummary[]>([]);
+  const [summaryData, setSummaryData] = useState<FamilyCellSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -69,7 +69,7 @@ export default function FclLeadersSummaryPage() {
   const [selectedGrade, setSelectedGrade] = useState<number | "All">("All");
 
   // Modal State
-  const [selectedLeader, setSelectedLeader] = useState<ProcessedLeader | null>(null);
+  const [selectedLeader, setSelectedLeader] = useState<ProcessedFamilyCell | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Export State
@@ -131,19 +131,20 @@ export default function FclLeadersSummaryPage() {
     }
   };
 
-  // Process leader data with calculated stats
-  const processedLeaders: ProcessedLeader[] = useMemo(() => {
-    return summaryData.map((leader) => {
-      const members = leader.members || [];
-      const totalMembers = members.length;
-      const presentCount = members.reduce(
-        (sum, m) => sum + (m.presentCount || 0),
-        0
-      );
-      const absentCount = members.reduce(
-        (sum, m) => sum + (m.absentCount || 0),
-        0
-      );
+  // Process data for charts & tables
+  const processedFamilyCells = useMemo<ProcessedFamilyCell[]>(() => {
+    if (!summaryData) return [];
+
+    return summaryData.map((fc) => {
+      const totalMembers = fc.members.length;
+      let presentCount = 0;
+      let absentCount = 0;
+
+      fc.members.forEach((m) => {
+        presentCount += m.presentCount;
+        absentCount += m.absentCount;
+      });
+
       const totalSessions = presentCount + absentCount;
       const attendanceRate =
         totalSessions > 0
@@ -151,7 +152,7 @@ export default function FclLeadersSummaryPage() {
           : 0;
 
       return {
-        ...leader,
+        ...fc,
         totalMembers,
         presentCount,
         absentCount,
@@ -160,37 +161,35 @@ export default function FclLeadersSummaryPage() {
     });
   }, [summaryData]);
 
-  // Filtered leaders
-  const filteredLeaders = useMemo(() => {
-    return processedLeaders.filter((leader) => {
-      const matchesSearch = leader.leaderName
-        .toLowerCase()
-        .includes(searchText.toLowerCase());
+  // Filtered family cells
+  const filteredFamilyCells = useMemo(() => {
+    return processedFamilyCells.filter((fc) => {
+      const matchesSearch = fc.leaders.some(l => l.name.toLowerCase().includes(searchText.toLowerCase())) || fc.fcName.toLowerCase().includes(searchText.toLowerCase());
 
       const matchesGender =
         selectedGender === "All" ||
-        leader.gender?.toLowerCase() === selectedGender.toLowerCase();
+        fc.gender?.toLowerCase() === selectedGender.toLowerCase();
 
       const matchesGrade =
-        selectedGrade === "All" || leader.grade === selectedGrade;
+        selectedGrade === "All" || fc.grade === selectedGrade;
 
       return matchesSearch && matchesGender && matchesGrade;
     });
-  }, [processedLeaders, searchText, selectedGender, selectedGrade]);
+  }, [processedFamilyCells, searchText, selectedGender, selectedGrade]);
 
-  // Aggregate stats across all leaders
+  // Aggregate stats across all family cells
   const aggregateStats = useMemo(() => {
-    const totalLeaders = processedLeaders.length;
-    const totalTeens = processedLeaders.reduce(
-      (sum, l) => sum + l.totalMembers,
+    const totalFamilyCells = processedFamilyCells.length;
+    const totalTeens = processedFamilyCells.reduce(
+      (sum, fc) => sum + fc.totalMembers,
       0
     );
-    const totalPresent = processedLeaders.reduce(
-      (sum, l) => sum + l.presentCount,
+    const totalPresent = processedFamilyCells.reduce(
+      (sum, fc) => sum + fc.presentCount,
       0
     );
-    const totalAbsent = processedLeaders.reduce(
-      (sum, l) => sum + l.absentCount,
+    const totalAbsent = processedFamilyCells.reduce(
+      (sum, fc) => sum + fc.absentCount,
       0
     );
     const totalRecords = totalPresent + totalAbsent;
@@ -200,13 +199,13 @@ export default function FclLeadersSummaryPage() {
         : "0";
 
     return {
-      totalLeaders,
+      totalFamilyCells,
       totalTeens,
       totalPresent,
       totalAbsent,
       overallRate,
     };
-  }, [processedLeaders]);
+  }, [processedFamilyCells]);
 
   const handleResetFilters = () => {
     setSearchText("");
@@ -214,12 +213,12 @@ export default function FclLeadersSummaryPage() {
     setSelectedGrade("All");
   };
 
-  const leaderColumns: ColumnsType<ProcessedLeader> = [
+  const familyCellColumns: ColumnsType<ProcessedFamilyCell> = [
     {
-      title: "Leader's Name",
-      dataIndex: "leaderName",
-      key: "leaderName",
-      sorter: (a, b) => a.leaderName.localeCompare(b.leaderName),
+      title: "Family Cell",
+      dataIndex: "fcName",
+      key: "fcName",
+      sorter: (a, b) => a.fcName.localeCompare(b.fcName),
       render: (name: string, record) => (
         <div className="flex items-center gap-3">
           <Avatar
@@ -233,7 +232,7 @@ export default function FclLeadersSummaryPage() {
           </Avatar>
           <div>
             <span className="font-semibold text-gray-800 block text-sm">{name}</span>
-            <span className="text-xs text-gray-400">ID: #{record.leaderId}</span>
+            <span className="text-xs text-gray-400">Leaders: {record.leaders.map(l => l.name).join(", ")}</span>
           </div>
         </div>
       ),
@@ -488,8 +487,8 @@ export default function FclLeadersSummaryPage() {
         <Col xs={12} sm={6} lg={4}>
           <Card bordered={false} className="shadow-sm rounded-xl h-full border border-gray-100">
             <Statistic
-              title={<span className="text-xs text-gray-400 uppercase font-medium">Total Leaders</span>}
-              value={aggregateStats.totalLeaders}
+              title={<span className="text-xs text-gray-400 uppercase font-medium">Family Cells</span>}
+              value={aggregateStats.totalFamilyCells}
               prefix={<UserOutlined className="text-blue-500 mr-1" />}
               valueStyle={{ fontSize: "1.75rem", fontWeight: "bold" }}
             />
@@ -553,7 +552,7 @@ export default function FclLeadersSummaryPage() {
             <div>
               <span className="font-semibold text-gray-800 text-base">Leader Attendance Overview</span>
               <p className="text-xs font-normal text-gray-400">
-                Period: {filterDate.format("MMMM YYYY")} ({filteredLeaders.length} leaders shown)
+                Period: {filterDate.format("MMMM YYYY")} ({filteredFamilyCells.length} family cells shown)
               </p>
             </div>
           </div>
@@ -607,22 +606,23 @@ export default function FclLeadersSummaryPage() {
 
         {/* Leaders Table */}
         <div className="overflow-x-auto">
-          <Table
-            columns={leaderColumns}
-            dataSource={filteredLeaders}
+          <Table<ProcessedFamilyCell>
+            dataSource={filteredFamilyCells}
+            columns={familyCellColumns}
             loading={loading}
-            rowKey="leaderId"
+            rowKey="fcId"
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50"],
-              showTotal: (total) => `Total ${total} leaders`,
+              showTotal: (total) => `Total ${total} Family Cells`,
+              className: "px-4",
             }}
             locale={{
               emptyText: (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No leader records found for the selected filters."
+                  description="No family cell records found for the selected filters."
                 />
               ),
             }}
@@ -631,15 +631,14 @@ export default function FclLeadersSummaryPage() {
       </Card>
 
       {/* Member Details Modal */}
-      {/* Member Details Modal */}
       <Modal
         title={
           <div className="flex items-center gap-3 text-base font-semibold text-gray-800">
             <Avatar className="bg-blue-600 text-white font-bold">
-              {selectedLeader?.leaderName?.charAt(0).toUpperCase()}
+              {selectedLeader?.fcName?.charAt(0).toUpperCase()}
             </Avatar>
             <div>
-              <span>{selectedLeader?.leaderName}&apos;s FC Group Members</span>
+              <span>{selectedLeader?.fcName}&apos;s Family Cell Members</span>
               <p className="text-xs font-normal text-gray-400">
                 Grade {selectedLeader?.grade ?? "N/A"} • {selectedLeader?.gender} • {selectedLeader?.totalMembers} Members
               </p>

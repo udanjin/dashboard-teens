@@ -8,6 +8,9 @@ class SportReport extends Model {
   public venue!: string;
   public code!: string;
   public participant!: number;
+  public absenteesCount!: number;
+  public chipInAmount!: number;
+  public penaltyAmount!: number;
   public detailPengeluaran!: { keterangan: string; cost: number }[];
   public detailPemasukan!: { keterangan: string; cost: number }[];
   public totalPengeluaran!: number;
@@ -41,6 +44,21 @@ SportReport.init(
     participant: {
       type: DataTypes.INTEGER,
       allowNull: false,
+    },
+    absenteesCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    chipInAmount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 25000,
+    },
+    penaltyAmount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 15000,
     },
     detailPengeluaran: {
       type: DataTypes.JSONB,

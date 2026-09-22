@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
 import { CashAdjustmentService } from "../services/CashAdjustmentService";
 import { createCashAdjustmentSchema, getCashAdjustmentsSchema } from "../dtos/CashAdjustment.dto";
+import { idParamSchema } from "../dtos/Params.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 
@@ -38,7 +39,7 @@ export class CashAdjustmentController {
   @Middleware([authMiddleware, requirePermission(PERMISSIONS.SPORTS_MANAGE)])
   private async delete(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const id = parseInt(req.params.id, 10);
+      const { id } = idParamSchema.parse(req.params);
       await CashAdjustmentService.deleteAdjustment(id);
       res.json({ message: "Adjustment deleted successfully" });
     } catch (err) {

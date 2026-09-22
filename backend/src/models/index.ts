@@ -17,6 +17,10 @@ User.belongsTo(FamilyCell, { as: "familyCell", foreignKey: "fcId" });
 FamilyCell.hasMany(Member, { as: "members", foreignKey: "fcId" });
 Member.belongsTo(FamilyCell, { as: "familyCell", foreignKey: "fcId" });
 
+// Allow direct access from Leader to Members sharing the same Family Cell
+User.hasMany(Member, { as: "members", foreignKey: "fcId", sourceKey: "fcId" });
+Member.belongsTo(User, { as: "leader", foreignKey: "fcId", targetKey: "fcId" });
+
 User.belongsToMany(Role, {
   through: "UserRole",
   as: "roles",

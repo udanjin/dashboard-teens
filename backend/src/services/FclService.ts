@@ -1,17 +1,22 @@
 import { Op, Sequelize } from "sequelize";
 import sequelize from "../config/db";
-import { User, Member, Role, Attendance } from "../models";
+import { User, Member, Role, Attendance, FamilyCell } from "../models";
 import { normalizePhoneNumber } from "../utils/phone.util";
 import dayjs from "dayjs";
 import { BadRequestError, NotFoundError, ForbiddenError, AppError } from "../errors/AppError";
+import { addMembersSchema, editMemberSchema } from "../dtos/Fcl.dto";
+import { z } from "zod";
 
 export class FclService {
-  static async addMembers(leaderId: number, membersData: any[]) {
+  static async addMembers(leaderId: number, membersData: z.infer<typeof addMembersSchema>["membersData"]) {
     const transaction = await sequelize.transaction();
     try {
       const leader = await User.findByPk(leaderId);
       if (!leader) {
         throw new NotFoundError("Leader not found");
+      }
+      if (!leader.fcId) {
+        throw new ForbiddenError("You must be assigned to a Family Cell before adding members.");
       }
 
       for (const memberInfo of membersData) {
@@ -24,21 +29,16 @@ export class FclService {
           throw new AppError(`Member "${memberInfo.name}" already exists for this leader.`, 409);
         }
 
-        const gradeNum = parseInt(memberInfo.grade, 10);
-        if (isNaN(gradeNum)) {
-          throw new BadRequestError(`Grade must be a valid number for member: ${memberInfo.name}`);
-        }
-        
         let validPhoneNumber = null;
         if (memberInfo.phoneNumber) {
           validPhoneNumber = normalizePhoneNumber(memberInfo.phoneNumber);
-        }
-        if (memberInfo.phoneNumber && !validPhoneNumber) {
-          throw new BadRequestError(`Format Phone Number of ${memberInfo.name} is invalid`);
+          if (!validPhoneNumber) {
+            throw new BadRequestError(`Format Phone Number of ${memberInfo.name} is invalid`);
+          }
         }
 
         const newMember = await Member.create(
-          { name: memberInfo.name, grade: gradeNum, gender: memberInfo.gender, dob: memberInfo.dob, phoneNumber: validPhoneNumber },
+          { name: memberInfo.name, dob: memberInfo.dob, phoneNumber: validPhoneNumber },
           { transaction },
         );
         await (leader as any).addMember(newMember, { transaction });
@@ -52,7 +52,7 @@ export class FclService {
     }
   }
 
-  static async editMember(leaderId: number, memberId: number, data: any) {
+  static async editMember(leaderId: number, memberId: number, data: z.infer<typeof editMemberSchema>) {
     if (!data.name && !data.dob && !data.phoneNumber) {
       throw new BadRequestError("At least one of name or date of birth or phone number is required");
     }
@@ -72,7 +72,7 @@ export class FclService {
     if (!member) throw new NotFoundError("Member not found");
 
     if (data.name) member.name = data.name;
-    if (data.dob) member.dob = data.dob;
+    if (data.dob) member.dob = data.dob as any;
     
     if (data.phoneNumber !== undefined) {
       if (data.phoneNumber) {
@@ -90,7 +90,7 @@ export class FclService {
 
   static async getMyMembers(leaderId: number) {
     const leader = await User.findByPk(leaderId, {
-      include: [{ model: Member, as: "members", through: { attributes: [] } }],
+      include: [{ model: Member, as: "members" }],
     });
 
     if (!leader) throw new NotFoundError("Leader not found");
@@ -102,52 +102,54 @@ export class FclService {
     const startDate = targetDate.startOf("month").format("YYYY-MM-DD");
     const endDate = targetDate.endOf("month").format("YYYY-MM-DD");
 
-    const leaders = await User.findAll({
-      attributes: ["id", "username", "grade", "gender"],
+    const familyCells = await FamilyCell.findAll({
+      attributes: ["id", "name", "grade"],
       include: [
         {
-          model: Role,
-          as: "roles",
-          where: { name: { [Op.in]: ["leader"] } },
-          attributes: [],
-          through: { attributes: [] },
+          model: User,
+          as: "leaders",
+          attributes: ["id", "username", "gender"],
+          where: { status: "approved" },
+          required: true,
         },
         {
           model: Member,
           as: "members",
           attributes: ["id", "name", "dob", "phoneNumber"],
-          through: { attributes: [] },
         },
       ],
     });
 
-    if (!leaders.length) return [];
+    if (!familyCells.length) return [];
 
-    const allMemberIds = leaders.flatMap((l: any) =>
-      l.members.map((m: Member) => m.id),
+    const allMemberIds = familyCells.flatMap((fc: any) =>
+      fc.members.map((m: Member) => m.id),
     );
 
-    const attendanceCounts = await Attendance.findAll({
-      attributes: [
-        "memberId",
-        "status",
-        [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
-      ],
-      where: {
-        memberId: { [Op.in]: allMemberIds },
-        status: { [Op.in]: [0, 1] },
-        date: { [Op.between]: [startDate, endDate] },
-      },
-      group: ["memberId", "status"],
-      raw: true,
-    });
+    let attendanceCounts: any[] = [];
+    if (allMemberIds.length > 0) {
+      attendanceCounts = await Attendance.findAll({
+        attributes: [
+          "memberId",
+          "status",
+          [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+        ],
+        where: {
+          memberId: { [Op.in]: allMemberIds },
+          status: { [Op.in]: [0, 1] },
+          date: { [Op.between]: [startDate, endDate] },
+        },
+        group: ["memberId", "status"],
+        raw: true,
+      });
+    }
 
-    return leaders.map((leader: any) => {
-      const membersWithStats = leader.members.map((member: Member) => {
-        const presentRecord = (attendanceCounts as any[]).find(
+    return familyCells.map((fc: any) => {
+      const membersWithStats = fc.members.map((member: Member) => {
+        const presentRecord = attendanceCounts.find(
           (p) => p.memberId === member.id && p.status === 0,
         );
-        const absentRecord = (attendanceCounts as any[]).find(
+        const absentRecord = attendanceCounts.find(
           (p) => p.memberId === member.id && p.status === 1,
         );
         return {
@@ -158,10 +160,11 @@ export class FclService {
       });
 
       return {
-        leaderId: leader.id,
-        leaderName: leader.username,
-        grade: leader.grade,
-        gender: leader.gender,
+        fcId: fc.id,
+        fcName: fc.name,
+        grade: fc.grade,
+        gender: fc.leaders[0]?.gender,
+        leaders: fc.leaders.map((l: any) => ({ id: l.id, name: l.username })),
         members: membersWithStats,
       };
     });
@@ -170,32 +173,32 @@ export class FclService {
   static async getFclWeeklyStats(filters: { month?: string; year?: string; gender?: string; grade?: string; lastWeeks?: string }) {
     const { month, year, gender, grade, lastWeeks } = filters;
 
-    const memberWhere: any = {};
-    if (gender) memberWhere.gender = gender;
-    if (grade) memberWhere.grade = parseInt(grade, 10);
+    const fcWhere: any = {};
+    if (grade) fcWhere.grade = parseInt(grade, 10);
 
-    const leaders = await User.findAll({
+    const userWhere: any = { status: "approved" };
+    if (gender) userWhere.gender = gender;
+
+    const familyCells = await FamilyCell.findAll({
+      where: Object.keys(fcWhere).length > 0 ? fcWhere : undefined,
       include: [
         {
-          model: Role,
-          as: "roles",
-          where: { name: { [Op.in]: ["leader"] } },
-          attributes: [],
-          through: { attributes: [] },
+          model: User,
+          as: "leaders",
+          where: userWhere,
+          required: true,
         },
         {
           model: Member,
           as: "members",
-          where: memberWhere,
           attributes: ["id"],
           required: false,
         },
       ],
     });
 
-    const leaderIds = leaders.map((l) => l.id);
-    const memberIds = leaders.flatMap((l: any) =>
-      l.members.map((m: Member) => m.id),
+    const memberIds = familyCells.flatMap((fc: any) =>
+      fc.members.map((m: Member) => m.id),
     );
 
     let emptySundays: dayjs.Dayjs[] = [];
@@ -232,7 +235,6 @@ export class FclService {
       where: {
         status: 0,
         memberId: { [Op.in]: memberIds },
-        leaderId: { [Op.in]: leaderIds },
         date: { [Op.in]: sundays },
       },
       group: ["date"],
@@ -271,7 +273,7 @@ export class FclService {
     }
     const targetDate = targetSunday.format("YYYY-MM-DD");
 
-    // Get all leaders
+    // Get all leaders with their members
     const leaders = await User.findAll({
       attributes: ["id", "username"],
       include: [
@@ -282,35 +284,58 @@ export class FclService {
           attributes: [],
           through: { attributes: [] },
         },
+        {
+          model: Member,
+          as: "members",
+          attributes: ["id"],
+          required: false,
+        }
       ],
     });
 
     const totalLeaders = leaders.length;
-    const leaderIds = leaders.map((l) => l.id);
-
-    if (leaderIds.length === 0) {
+    if (totalLeaders === 0) {
       return { submitted: 0, total: 0, date: targetDate, unsubmitted: [] };
     }
 
-    // Count distinct leaders who have at least 1 attendance record for this date
-    const submittedLeaders = await Attendance.findAll({
-      attributes: [
-        [Sequelize.fn("DISTINCT", Sequelize.col("leaderId")), "leaderId"],
-      ],
-      where: {
-        leaderId: { [Op.in]: leaderIds },
-        date: targetDate,
-      },
-      raw: true,
-    });
+    // Collect all member IDs across all leaders
+    const allMemberIds = leaders.flatMap((l: any) => 
+      (l.members || []).map((m: any) => m.id)
+    );
 
-    const submittedLeaderIds = submittedLeaders.map((s: any) => s.leaderId);
-    const unsubmittedLeaders = leaders
-      .filter((l) => !submittedLeaderIds.includes(l.id))
-      .map((l) => l.username);
+    // Find which of these members have attendance records on this date
+    let submittedMemberIds: number[] = [];
+    if (allMemberIds.length > 0) {
+      const submittedAttendances = await Attendance.findAll({
+        attributes: ["memberId"],
+        where: {
+          date: targetDate,
+          memberId: { [Op.in]: allMemberIds }
+        },
+        raw: true,
+      });
+      submittedMemberIds = submittedAttendances.map(a => a.memberId);
+    }
+
+    // A leader's cell is submitted if ANY of their members have an attendance record
+    const unsubmittedLeaders: string[] = [];
+    let submittedCount = 0;
+
+    for (const leader of leaders) {
+      const leaderMembers = (leader as any).members || [];
+      const leaderMemberIds = leaderMembers.map((m: any) => m.id);
+      
+      const hasSubmitted = leaderMemberIds.some((id: number) => submittedMemberIds.includes(id));
+      
+      if (hasSubmitted) {
+        submittedCount++;
+      } else {
+        unsubmittedLeaders.push(leader.username);
+      }
+    }
 
     return {
-      submitted: submittedLeaders.length,
+      submitted: submittedCount,
       total: totalLeaders,
       date: targetDate,
       unsubmitted: unsubmittedLeaders,

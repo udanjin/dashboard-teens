@@ -6,28 +6,9 @@ import { AuthService } from "../services/AuthService";
 import { registerSchema, loginSchema, approveUserSchema } from "../dtos/Auth.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
+import { setCookieToken, clearCookieToken } from "../utils/cookie";
 
-const COOKIE_NAME = "authToken";
-const COOKIE_MAX_AGE = 8 * 60 * 60 * 1000;
 
-function setCookieToken(res: Response, token: string): void {
-  res.cookie(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: COOKIE_MAX_AGE,
-    path: "/",
-  });
-}
-
-function clearCookieToken(res: Response): void {
-  res.clearCookie(COOKIE_NAME, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
-  });
-}
 
 @Controller("api/auth")
 export class AuthController {
@@ -63,8 +44,8 @@ export class AuthController {
   @Get("me")
   @Middleware(authMiddleware)
   private getMe(req: AuthenticatedRequest, res: Response): void {
-    const { userId, username, name, roles, permissions, gender, grade } = req.user!;
-    res.json({ id: userId, username, name, roles, permissions, gender, grade });
+    const { userId, username, name, roles, permissions, gender, grade, dob } = req.user!;
+    res.json({ id: userId, username, name, roles, permissions, gender, grade, dob });
   }
 
   @Get("pending")

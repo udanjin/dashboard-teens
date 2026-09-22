@@ -19,11 +19,12 @@ export interface MemberStat {
   dob: string;
 }
 
-export interface LeaderSummary {
-  leaderId: number;
-  leaderName: string;
-  gender: string;
+export interface FamilyCellSummary {
+  fcId: number;
+  fcName: string;
   grade: number;
+  gender: string;
+  leaders: { id: number; name: string }[];
   members: MemberStat[];
 }
 

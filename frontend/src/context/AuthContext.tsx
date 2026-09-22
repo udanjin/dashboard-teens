@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth.service";
 import { saveUser, getStoredUser, clearStoredUser } from "@/lib/authUtils";
@@ -11,6 +11,7 @@ interface AuthContextType {
   user: UserInfo | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (newUser: Partial<UserInfo>) => void;
   loading: boolean;
 }
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     setLoading(true);
     try {
       const { data } = await authService.login(username, password);
@@ -70,10 +71,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const updateUser = useCallback((newUser: Partial<UserInfo>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, ...newUser };
+      saveUser(updatedUser);
+      return updatedUser;
+    });
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ isAuthenticated, user, login, logout, updateUser, loading }),
+    [isAuthenticated, user, loading, logout, updateUser, login]
+  );
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

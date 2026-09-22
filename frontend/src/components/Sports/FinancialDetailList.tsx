@@ -26,38 +26,44 @@ export default function FinancialDetailList({
           <>
             <div className="mb-4 space-y-3">
               {fields.map(({ key, name: fieldName, ...restField }) => (
-                <div key={key} className="flex flex-col sm:flex-row gap-2 items-start">
+                <div 
+                  key={key} 
+                  className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-start bg-slate-50/50 p-3 sm:p-0 sm:bg-transparent rounded-lg border border-slate-100 sm:border-0"
+                >
                   <Form.Item
                     {...restField}
                     name={[fieldName, "keterangan"]}
                     rules={[{ required: true, message: "Masukkan keterangan" }]}
-                    className="flex-1 mb-0 w-full sm:w-auto"
+                    className="flex-1 mb-0 w-full"
                   >
-                    <Input placeholder={placeholder} disabled={disabled} />
+                    <Input placeholder={placeholder} disabled={disabled} className="w-full" />
                   </Form.Item>
-                  <Form.Item
-                    {...restField}
-                    name={[fieldName, "cost"]}
-                    rules={[{ required: true, message: "Masukkan jumlah" }]}
-                    className="w-full sm:w-40 mb-0"
-                  >
-                    <InputNumber
-                      min={0}
-                      placeholder="Jumlah"
-                      className="w-full"
-                      formatter={currencyFormatter}
-                      parser={currencyParser}
-                      disabled={disabled}
-                    />
-                  </Form.Item>
-                  {!disabled && (
-                    <Button
-                      type="text"
-                      icon={<CloseOutlined />}
-                      onClick={() => remove(fieldName)}
-                      className="sm:self-start"
-                    />
-                  )}
+                  <div className="flex w-full sm:w-auto gap-2 items-start">
+                    <Form.Item
+                      {...restField}
+                      name={[fieldName, "cost"]}
+                      rules={[{ required: true, message: "Masukkan jumlah" }]}
+                      className="flex-1 sm:w-40 mb-0"
+                    >
+                      <InputNumber
+                        min={0}
+                        placeholder="Jumlah"
+                        className="w-full"
+                        formatter={currencyFormatter}
+                        parser={currencyParser}
+                        disabled={disabled}
+                      />
+                    </Form.Item>
+                    {!disabled && (
+                      <Button
+                        type="text"
+                        danger
+                        icon={<CloseOutlined />}
+                        onClick={() => remove(fieldName)}
+                        className="flex-shrink-0 bg-red-50 hover:bg-red-100"
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

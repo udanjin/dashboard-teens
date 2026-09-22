@@ -18,15 +18,21 @@ export class AttendanceService {
     const memberIds = members.map((m: Member) => m.id);
 
     const existingAttendances = await Attendance.findAll({
-      where: { memberId: { [Op.in]: memberIds }, leaderId, date },
+      where: { memberId: { [Op.in]: memberIds }, date },
     });
 
+    // O(1) Map lookup for performance
+    const attendanceMap = new Map<number, number>();
+    for (const record of existingAttendances) {
+      attendanceMap.set(record.memberId, record.status);
+    }
+
     return members.map((member: Member) => {
-      const record = existingAttendances.find((a) => a.memberId === member.id);
+      const status = attendanceMap.get(member.id);
       return {
         memberId: member.id,
         name: member.name,
-        status: record ? record.status : null,
+        status: status !== undefined ? status : null,
       };
     });
   }
@@ -50,7 +56,7 @@ export class AttendanceService {
 
       if (toDelete.length > 0) {
         await Attendance.destroy({
-          where: { leaderId, date, memberId: { [Op.in]: toDelete } },
+          where: { date, memberId: { [Op.in]: toDelete } },
           transaction,
         });
       }
@@ -92,7 +98,6 @@ export class AttendanceService {
         [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
       ],
       where: {
-        leaderId,
         memberId: { [Op.in]: memberIds },
         status: { [Op.in]: [0, 1] },
         date: {
@@ -106,20 +111,28 @@ export class AttendanceService {
       raw: true,
     });
 
+    const attendanceMap = new Map<number, { presentCount: number, absentCount: number }>();
+    for (const record of (attendanceCount as any[])) {
+      const memberId = record.memberId;
+      const count = parseInt(record.count, 10);
+      
+      if (!attendanceMap.has(memberId)) {
+        attendanceMap.set(memberId, { presentCount: 0, absentCount: 0 });
+      }
+      
+      const stats = attendanceMap.get(memberId)!;
+      if (record.status === 0) stats.presentCount = count;
+      else if (record.status === 1) stats.absentCount = count;
+    }
+
     const memberStats = members.map((member: Member) => {
-      let presentCount = 0;
-      let absentCount = 0;
-
-      const records = (attendanceCount as any[]).filter(
-        (p) => p.memberId === member.id,
-      );
-
-      records.forEach((record) => {
-        if (record.status === 0) presentCount = parseInt(record.count, 10);
-        else if (record.status === 1) absentCount = parseInt(record.count, 10);
-      });
-
-      return { memberId: member.id, name: member.name, presentCount, absentCount };
+      const stats = attendanceMap.get(member.id) || { presentCount: 0, absentCount: 0 };
+      return { 
+        memberId: member.id, 
+        name: member.name, 
+        presentCount: stats.presentCount, 
+        absentCount: stats.absentCount 
+      };
     });
 
     return { memberStats };

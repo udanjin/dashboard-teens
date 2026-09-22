@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axiosInstance";
-import type { PendingUser, Role, ApproveUserPayload, ApprovedUser, UpdateUserPayload } from "@/types";
+import type { PendingUser, Role, ApproveUserPayload, ApprovedUser, UpdateUserPayload, UserInfo } from "@/types";
 
 export const userService = {
   getPendingUsers() {
@@ -11,7 +11,7 @@ export const userService = {
   },
 
   getFamilyCells() {
-    return axiosInstance.get<{ id: number; name: string; grade: number }[]>("/family-cells");
+    return axiosInstance.get<{ id: number; name: string; grade: number; gender: string | null }[]>("/family-cells");
   },
 
   approveUser(userId: string, payload: ApproveUserPayload) {
@@ -35,6 +35,6 @@ export const userService = {
   },
 
   updateProfile(payload: { name?: string; dob?: string }) {
-    return axiosInstance.put("/users/profile", payload);
+    return axiosInstance.put<{ message: string; user: UserInfo }>("/users/profile", payload);
   },
 };
