@@ -34,6 +34,7 @@ import {
   ArrowLeftOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import dayjs, { type Dayjs } from "dayjs";
@@ -42,6 +43,7 @@ import { useRoleAccess } from "@/hooks/useRoleAccess";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/types";
 import { MemberStat, FamilyCellSummary } from "@/types/fcl.types";
+import HistoryModal from "@/components/FCL/HistoryModal";
 
 const { Title, Text } = Typography;
 
@@ -71,6 +73,16 @@ export default function FclLeadersSummaryPage() {
   // Modal State
   const [selectedLeader, setSelectedLeader] = useState<ProcessedFamilyCell | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [historyProps, setHistoryProps] = useState<{
+    open: boolean;
+    memberId: number | null;
+    monthYear?: { month: number; year: number } | null;
+    memberName: string;
+  }>({
+    open: false,
+    memberId: null,
+    memberName: "",
+  });
 
   // Export State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -404,6 +416,23 @@ export default function FclLeadersSummaryPage() {
         );
       },
     },
+    {
+      title: "History",
+      key: "history",
+      align: "center",
+      render: (_, record) => (
+        <Button 
+          type="text" 
+          icon={<HistoryOutlined className="text-blue-500" />} 
+          onClick={() => setHistoryProps({
+            open: true,
+            memberId: record.id,
+            monthYear: { month: filterDate.month() + 1, year: filterDate.year() },
+            memberName: record.name
+          })}
+        />
+      ),
+    },
   ];
 
   if (!canViewSummary) {
@@ -717,6 +746,15 @@ export default function FclLeadersSummaryPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Monthly Attendance History Modal */}
+      <HistoryModal
+        open={historyProps.open}
+        memberId={historyProps.memberId}
+        monthYear={historyProps.monthYear}
+        memberName={historyProps.memberName}
+        onClose={() => setHistoryProps((prev) => ({ ...prev, open: false }))}
+      />
     </div>
   );
 }

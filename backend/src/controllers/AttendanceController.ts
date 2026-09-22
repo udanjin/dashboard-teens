@@ -3,7 +3,7 @@ import { Response, NextFunction } from "express";
 import { authMiddleware } from "../middleware/auth";
 import { requirePermission } from "../middleware/roleAuth";
 import { AttendanceService } from "../services/AttendanceService";
-import { getAttendanceSheetSchema, submitAttendanceSchema, getSingleAttendanceSchema } from "../dtos/Attendance.dto";
+import { getAttendanceSheetSchema, submitAttendanceSchema, getSingleAttendanceSchema, getMonthlyHistorySchema } from "../dtos/Attendance.dto";
 import { PERMISSIONS } from "../types";
 import type { AuthenticatedRequest } from "../types";
 import { BadRequestError } from "../errors/AppError";
@@ -70,6 +70,26 @@ export class AttendanceController {
       }
 
       const history = await AttendanceService.getAttendanceHistory(memberId, date);
+      res.json(history);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  @Get("history/monthly/:memberId")
+  @Middleware([authMiddleware, requirePermission(PERMISSIONS.ATTENDANCE_VIEW)])
+  private async getMonthlyHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const leaderId = req.user?.userId;
+      if (!leaderId) throw new BadRequestError("Leader ID is missing from token");
+
+      const memberId = parseInt(req.params.memberId, 10);
+      if (isNaN(memberId)) {
+        throw new BadRequestError("Invalid memberId");
+      }
+
+      const { month, year } = getMonthlyHistorySchema.parse(req.query);
+      const history = await AttendanceService.getMonthlyAttendanceHistory(memberId, month, year);
       res.json(history);
     } catch (err) {
       next(err);

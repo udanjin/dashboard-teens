@@ -11,28 +11,41 @@ const { Text } = Typography;
 interface HistoryModalProps {
   open: boolean;
   memberId: number | null;
-  date: string | null;
+  date?: string | null;
+  monthYear?: { month: number; year: number } | null;
   memberName: string;
   onClose: () => void;
 }
 
-export default function HistoryModal({ open, memberId, date, memberName, onClose }: HistoryModalProps) {
+export default function HistoryModal({ open, memberId, date, monthYear, memberName, onClose }: HistoryModalProps) {
   const [data, setData] = useState<AttendanceHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (open && memberId && date) {
+    if (open && memberId) {
       setLoading(true);
-      attendanceService.getHistory(memberId, date)
+      const fetchPromise = monthYear 
+        ? attendanceService.getHistoryByMonth(memberId, monthYear.month, monthYear.year)
+        : date 
+          ? attendanceService.getHistory(memberId, date)
+          : Promise.resolve({ data: [] });
+
+      fetchPromise
         .then(res => setData(res.data))
         .catch(() => message.error("Failed to load history"))
         .finally(() => setLoading(false));
     } else {
       setData([]);
     }
-  }, [open, memberId, date]);
+  }, [open, memberId, date, monthYear]);
 
   const columns: ColumnsType<AttendanceHistoryEntry> = [
+    ...(monthYear ? [{
+      title: "Attendance Date",
+      dataIndex: "date",
+      key: "date",
+      render: (d: string) => <Text strong>{dayjs(d).format("ddd, D MMM YYYY")}</Text>
+    }] : []),
     {
       title: "Action",
       dataIndex: "action",
@@ -72,9 +85,15 @@ export default function HistoryModal({ open, memberId, date, memberName, onClose
     }
   ];
 
+  const modalTitle = monthYear 
+    ? `Attendance History for ${memberName} in ${dayjs().month(monthYear.month - 1).year(monthYear.year).format("MMM YYYY")}`
+    : date 
+      ? `Attendance History for ${memberName} on ${dayjs(date).format("D MMM YYYY")}`
+      : `Attendance History for ${memberName}`;
+
   return (
     <Modal
-      title={`Attendance History for ${memberName} on ${date ? dayjs(date).format("D MMM YYYY") : ""}`}
+      title={modalTitle}
       open={open}
       onCancel={onClose}
       footer={null}

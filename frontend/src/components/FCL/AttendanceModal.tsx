@@ -8,6 +8,7 @@ import { fclService, attendanceService } from "@/services";
 import { getSundaysOfMonth } from "@/lib/formatters";
 import dayjs, { type Dayjs } from "dayjs";
 import type { AttendanceRecord } from "@/types";
+import { useRoleAccess } from "@/hooks/useRoleAccess";
 import HistoryModal from "./HistoryModal";
 
 const { Text } = Typography;
@@ -33,6 +34,9 @@ interface AttendanceModalProps {
 }
 
 export default function AttendanceModal({ open, onClose, onSubmitted }: AttendanceModalProps) {
+  const { hasAccess } = useRoleAccess();
+  const canViewHistory = hasAccess(["fcl", "admin"]);
+  
   const [date, setDate] = useState(dayjs());
   const [data, setData] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -142,7 +146,7 @@ export default function AttendanceModal({ open, onClose, onSubmitted }: Attendan
               onClick={() => handleChange(record.memberId as number, key)} 
               disabled={isFuture}
             />
-            {record[key] !== null && !isFuture && (
+            {canViewHistory && record[key] !== null && !isFuture && (
               <Tooltip title="View History">
                 <Button 
                   type="text" 

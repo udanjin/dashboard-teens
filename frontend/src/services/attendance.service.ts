@@ -39,4 +39,10 @@ export const attendanceService = {
       `/attendance/history/${memberId}/${date}`
     );
   },
+
+  getHistoryByMonth(memberId: number, month: number, year: number) {
+    return axiosInstance.get<AttendanceHistoryEntry[]>(
+      `/attendance/history/monthly/${memberId}?month=${month}&year=${year}`
+    );
+  },
 };

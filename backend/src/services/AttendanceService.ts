@@ -204,4 +204,18 @@ export class AttendanceService {
       order: [["createdAt", "DESC"]],
     });
   }
+
+  static async getMonthlyAttendanceHistory(memberId: number, month: number, year: number) {
+    const startDate = dayjs(`${year}-${month}-01`).startOf("month").format("YYYY-MM-DD");
+    const endDate = dayjs(`${year}-${month}-01`).endOf("month").format("YYYY-MM-DD");
+    
+    return await AttendanceHistory.findAll({
+      where: { 
+        memberId, 
+        date: { [Op.between]: [startDate, endDate] } 
+      },
+      include: [{ model: User, as: "Updater", attributes: ["id", "username", "name"] }],
+      order: [["createdAt", "DESC"]],
+    });
+  }
 }
